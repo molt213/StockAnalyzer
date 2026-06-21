@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 简单图标颜色背景 -->
+    <style name="Theme.StockAnalyzer.LauncherIcon" parent="Theme.StockAnalyzer">
+        <item name="android:windowBackground">@color/primary</item>
+    </style>
+</resources>

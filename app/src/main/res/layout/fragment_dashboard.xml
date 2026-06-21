@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?android:colorBackground">
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipe_refresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- 自选股标题 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/watchlist"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="?android:textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/watchlist_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="13sp"
+                        android:textColor="?android:textColorSecondary" />
+                </LinearLayout>
+
+                <!-- 自选股列表 -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/watchlist_recycler"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+
+                <!-- 空状态 -->
+                <LinearLayout
+                    android:id="@+id/empty_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="📈" android:textSize="48sp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="@string/no_watchlist" android:textSize="15sp"
+                        android:textColor="?android:textColorSecondary"
+                        android:gravity="center" android:layout_marginTop="12dp"
+                        android:lineSpacingExtra="4dp" />
+                </LinearLayout>
+
+                <!-- 市场概览卡片 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="2dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="16dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="市场概览"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="?android:textColorPrimary" />
+
+                        <TextView
+                            android:id="@+id/market_date"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="12sp"
+                            android:textColor="?android:textColorSecondary"
+                            android:layout_marginTop="4dp" />
+
+                        <!-- 大盘指数 -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginTop="12dp">
+
+                            <!-- 上证指数 -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:paddingVertical="6dp">
+                                <TextView android:id="@+id/index_sh_name"
+                                    android:layout_width="0dp" android:layout_height="wrap_content"
+                                    android:layout_weight="1" android:text="上证指数"
+                                    android:textSize="15sp" android:textStyle="bold"
+                                    android:textColor="?android:textColorPrimary" />
+                                <TextView android:id="@+id/index_sh_value"
+                                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                    android:textSize="15sp" android:textStyle="bold"
+                                    android:gravity="end" android:layout_marginEnd="12dp" />
+                                <TextView android:id="@+id/index_sh_change"
+                                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                    android:textSize="13sp" android:gravity="end" />
+                            </LinearLayout>
+
+                            <View android:layout_width="match_parent" android:layout_height="1dp"
+                                android:background="?android:listDivider" />
+
+                            <!-- 深证成指 -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:paddingVertical="6dp">
+                                <TextView android:id="@+id/index_sz_name"
+                                    android:layout_width="0dp" android:layout_height="wrap_content"
+                                    android:layout_weight="1" android:text="深证成指"
+                                    android:textSize="15sp" android:textStyle="bold"
+                                    android:textColor="?android:textColorPrimary" />
+                                <TextView android:id="@+id/index_sz_value"
+                                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                    android:textSize="15sp" android:textStyle="bold"
+                                    android:gravity="end" android:layout_marginEnd="12dp" />
+                                <TextView android:id="@+id/index_sz_change"
+                                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                    android:textSize="13sp" android:gravity="end" />
+                            </LinearLayout>
+
+                            <View android:layout_width="match_parent" android:layout_height="1dp"
+                                android:background="?android:listDivider" />
+
+                            <!-- 创业板指 -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:paddingVertical="6dp">
+                                <TextView android:id="@+id/index_cy_name"
+                                    android:layout_width="0dp" android:layout_height="wrap_content"
+                                    android:layout_weight="1" android:text="创业板指"
+                                    android:textSize="15sp" android:textStyle="bold"
+                                    android:textColor="?android:textColorPrimary" />
+                                <TextView android:id="@+id/index_cy_value"
+                                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                    android:textSize="15sp" android:textStyle="bold"
+                                    android:gravity="end" android:layout_marginEnd="12dp" />
+                                <TextView android:id="@+id/index_cy_change"
+                                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                    android:textSize="13sp" android:gravity="end" />
+                            </LinearLayout>
+
+                            <View android:layout_width="match_parent" android:layout_height="1dp"
+                                android:background="?android:listDivider" />
+
+                            <!-- 科创50 -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:paddingVertical="6dp">
+                                <TextView android:id="@+id/index_kc_name"
+                                    android:layout_width="0dp" android:layout_height="wrap_content"
+                                    android:layout_weight="1" android:text="科创50"
+                                    android:textSize="15sp" android:textStyle="bold"
+                                    android:textColor="?android:textColorPrimary" />
+                                <TextView android:id="@+id/index_kc_value"
+                                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                    android:textSize="15sp" android:textStyle="bold"
+                                    android:gravity="end" android:layout_marginEnd="12dp" />
+                                <TextView android:id="@+id/index_kc_change"
+                                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                    android:textSize="13sp" android:gravity="end" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- 市场要闻 -->
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="要闻"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="16dp"
+                            android:textColor="?android:textColorPrimary" />
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/market_news_recycler"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:nestedScrollingEnabled="false"
+                            android:layout_marginTop="4dp" />
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 上次更新 -->
+                <TextView
+                    android:id="@+id/last_update_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textColor="?android:textColorHint"
+                    android:gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="16dp" />
+
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+</LinearLayout>

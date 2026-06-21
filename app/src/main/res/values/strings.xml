@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">智能股票分析</string>
+
+    <!-- 导航 -->
+    <string name="nav_dashboard">首页</string>
+    <string name="nav_search">搜索</string>
+    <string name="nav_ai_analysis">AI分析</string>
+    <string name="nav_settings">设置</string>
+
+    <!-- 仪表盘 -->
+    <string name="watchlist">自选股</string>
+    <string name="market_overview">市场概览</string>
+    <string name="no_watchlist">还没有添加自选股\n点击搜索按钮添加股票</string>
+    <string name="pull_to_refresh">下拉刷新</string>
+    <string name="last_update">最后更新: %s</string>
+
+    <!-- 搜索 -->
+    <string name="search_hint">输入股票代码或名称搜索</string>
+    <string name="search_history">搜索历史</string>
+    <string name="search_no_results">没有找到匹配的股票</string>
+    <string name="searching">搜索中…</string>
+
+    <!-- 股票详情 -->
+    <string name="stock_detail">股票详情</string>
+    <string name="add_to_watchlist">添加自选</string>
+    <string name="remove_from_watchlist">移除自选</string>
+    <string name="overview">概览</string>
+    <string name="chart">图表</string>
+    <string name="news">新闻</string>
+    <string name="financials">财务</string>
+    <string name="open">开盘</string>
+    <string name="close">收盘</string>
+    <string name="high">最高</string>
+    <string name="low">最低</string>
+    <string name="volume">成交量</string>
+    <string name="previous_close">昨收</string>
+    <string name="market_cap">市值</string>
+    <string name="pe_ratio">市盈率</string>
+    <string name="eps">每股收益</string>
+    <string name="dividend_yield">股息率</string>
+    <string name="beta">Beta系数</string>
+    <string name="week_52_range">52周范围</string>
+    <string name="sector">行业板块</string>
+    <string name="industry">所属行业</string>
+
+    <!-- AI分析 -->
+    <string name="ai_analysis_title">AI智能分析</string>
+    <string name="technical_analysis">技术分析</string>
+    <string name="fundamental_analysis">基本面分析</string>
+    <string name="comprehensive_analysis">全面分析</string>
+    <string name="ask_ai">向AI提问</string>
+    <string name="analysis_history">分析历史</string>
+    <string name="start_analysis">开始分析</string>
+    <string name="analyzing">AI分析中，请稍候…</string>
+    <string name="analysis_result">分析结果</string>
+    <string name="ai_not_configured">请先在设置中配置AI API Key</string>
+    <string name="input_question">输入你想了解的问题…</string>
+    <string name="rating">评级</string>
+    <string name="confidence">信心指数</string>
+    <string name="risk_level">风险等级</string>
+    <string name="strengths">优势</string>
+    <string name="risks">风险</string>
+    <string name="advice">投资建议</string>
+    <string name="conclusion">分析结论</string>
+    <string name="trend">趋势判断</string>
+    <string name="support">支撑位</string>
+    <string name="resistance">阻力位</string>
+
+    <!-- 设置 -->
+    <string name="settings_title">设置</string>
+    <string name="api_settings">API配置</string>
+    <string name="stock_api_key">股票数据API Key</string>
+    <string name="ai_api_key">AI API Key</string>
+    <string name="ai_model">AI模型</string>
+    <string name="ai_base_url">AI API地址</string>
+    <string name="stock_base_url">股票API地址</string>
+    <string name="display_settings">显示设置</string>
+    <string name="dark_mode">深色模式</string>
+    <string name="auto_refresh">自动刷新</string>
+    <string name="data_management">数据管理</string>
+    <string name="clear_analysis_history">清除分析历史</string>
+    <string name="clear_watchlist">清空自选股</string>
+    <string name="about">关于</string>
+    <string name="version">版本</string>
+    <string name="save">保存</string>
+    <string name="saved">已保存</string>
+
+    <!-- 通用 -->
+    <string name="retry">重试</string>
+    <string name="loading">加载中…</string>
+    <string name="error_network">网络异常，请稍后重试</string>
+    <string name="error_data">数据加载失败</string>
+    <string name="error_api_key">请先配置API Key</string>
+    <string name="confirm">确认</string>
+    <string name="cancel">取消</string>
+    <string name="confirm_delete">确认删除？</string>
+    <string name="confirm_clear">确认清空？</string>
+    <string name="empty">暂无数据</string>
+    <string name="no_data_available">暂无可用数据</string>
+
+    <!-- 内容描述 (无障碍) -->
+    <string name="cd_stock_up">股票上涨</string>
+    <string name="cd_stock_down">股票下跌</string>
+    <string name="cd_chart">股价走势图</string>
+    <string name="cd_search">搜索股票</string>
+    <string name="cd_add_watchlist">添加至自选股</string>
+    <string name="cd_ai_analysis">AI分析按钮</string>
+</resources>

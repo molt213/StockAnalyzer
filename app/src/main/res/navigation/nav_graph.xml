@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/nav_dashboard">
+
+    <fragment
+        android:id="@+id/nav_dashboard"
+        android:name="com.stockanalyzer.ui.dashboard.DashboardFragment"
+        android:label="@string/nav_dashboard" />
+
+    <fragment
+        android:id="@+id/nav_search"
+        android:name="com.stockanalyzer.ui.search.SearchFragment"
+        android:label="@string/nav_search" />
+
+    <fragment
+        android:id="@+id/nav_ai_analysis"
+        android:name="com.stockanalyzer.ui.ai.AIAnalysisFragment"
+        android:label="@string/nav_ai_analysis" />
+
+    <fragment
+        android:id="@+id/nav_settings"
+        android:name="com.stockanalyzer.ui.settings.SettingsFragment"
+        android:label="@string/nav_settings" />
+
+</navigation>

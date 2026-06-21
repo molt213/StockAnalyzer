@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 东方财富相关域名允许明文传输（部分API只支持HTTP） -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">eastmoney.com</domain>
+        <domain includeSubdomains="true">10jqka.com.cn</domain>
+        <domain includeSubdomains="true">gtimg.cn</domain>
+        <domain includeSubdomains="true">sina.com.cn</domain>
+        <domain includeSubdomains="true">xueqiu.com</domain>
+    </domain-config>
+</network-security-config>
