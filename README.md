@@ -26,7 +26,7 @@
 
 ```bash
 # 使用本地 Gradle 构建
-/c/Users/user/gradle-8.5/bin/gradle assembleDebug
+/c/Users/username/gradle-8.5/bin/gradle assembleDebug
 # 或
 ./gradlew assembleDebug
 ```
