@@ -1,5 +1,17 @@
 # 更新日志
 
+## v1.0.2 (2026-06-22)
+
+### 🐛 Bug 修复
+- **AI 分析点击闪退**：修复 R8 full mode 剥离 Retrofit 接口泛型签名导致的 `Call return type must be parameterized as Call<Foo>` 崩溃。AI API 接口返回类型改为 `Call<ResponseBody>` 绕过泛型问题，同时禁用 R8 full mode 确保泛型元数据保留
+
+### ✨ 新功能
+- **分析历史可重复查看**：点击分析历史记录列表中的条目，可直接查看该次完整分析结果（评级、趋势、风险、优势、建议等全部内容），无需重新请求 AI
+
+### 🔧 技术改进
+- AI API 调用改用原始响应体手动解析，消除对 Retrofit 自动反序列化的依赖
+- gradle.properties 新增 `android.enableR8.fullMode=false`，兼容 R8 正常模式优化
+
 ## v1.0.1 (2026-06-22)
 
 ### 🐛 Bug 修复

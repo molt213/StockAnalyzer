@@ -10,6 +10,9 @@
 -dontwarn retrofit2.KotlinExtensions
 -dontwarn retrofit2.KotlinExtensions$*
 
+# 保留 AiApiService 的完整泛型信息
+-keep class com.stockanalyzer.data.remote.AiApiService
+
 # Gson
 -keepattributes Signature
 -keepattributes *Annotation*

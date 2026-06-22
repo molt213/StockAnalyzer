@@ -17,6 +17,7 @@ import com.stockanalyzer.data.remote.dto.AIRequest;
 import java.util.ArrayList;
 import java.util.List;
 
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -251,42 +252,46 @@ public class AIRepository {
         AIRequest.DeepSeekRequest request = new AIRequest.DeepSeekRequest(model, messages);
 
         apiService.sendChatCompletion("Bearer " + apiKey, "application/json", request)
-                .enqueue(new Callback<AIRequest.DeepSeekResponse>() {
+                .enqueue(new Callback<ResponseBody>() {
             @Override
-            public void onResponse(@NonNull Call<AIRequest.DeepSeekResponse> call,
-                                    @NonNull Response<AIRequest.DeepSeekResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    AIRequest.DeepSeekResponse body = response.body();
+            public void onResponse(@NonNull Call<ResponseBody> call,
+                                    @NonNull Response<ResponseBody> response) {
+                try {
+                    if (response.isSuccessful() && response.body() != null) {
+                        String json = response.body().string();
+                        AIRequest.DeepSeekResponse body = gson.fromJson(json, AIRequest.DeepSeekResponse.class);
 
-                    // 检查 API 错误
-                    if (body.error != null) {
-                        callback.onError(new Exception("API错误: " + body.error.message));
-                        return;
-                    }
-
-                    // 从 choices 中提取文本
-                    if (body.choices != null && !body.choices.isEmpty()
-                            && body.choices.get(0).message != null) {
-                        String text = body.choices.get(0).message.content;
-                        callback.onSuccess(text != null ? text : "");
-                    } else {
-                        callback.onError(new Exception("AI响应格式异常"));
-                    }
-                } else {
-                    String errMsg = "AI请求失败: " + response.code();
-                    // 尝试解析错误体
-                    try {
-                        if (response.errorBody() != null) {
-                            String errBody = response.errorBody().string();
-                            errMsg += " - " + errBody;
+                        // 检查 API 错误
+                        if (body.error != null) {
+                            callback.onError(new Exception("API错误: " + body.error.message));
+                            return;
                         }
-                    } catch (Exception ignored) {}
-                    callback.onError(new Exception(errMsg));
+
+                        // 从 choices 中提取文本
+                        if (body.choices != null && !body.choices.isEmpty()
+                                && body.choices.get(0).message != null) {
+                            String text = body.choices.get(0).message.content;
+                            callback.onSuccess(text != null ? text : "");
+                        } else {
+                            callback.onError(new Exception("AI响应格式异常"));
+                        }
+                    } else {
+                        String errMsg = "AI请求失败: " + response.code();
+                        try {
+                            if (response.errorBody() != null) {
+                                String errBody = response.errorBody().string();
+                                errMsg += " - " + errBody;
+                            }
+                        } catch (Exception ignored) {}
+                        callback.onError(new Exception(errMsg));
+                    }
+                } catch (Exception e) {
+                    callback.onError(new Exception("解析AI响应失败: " + e.getMessage()));
                 }
             }
 
             @Override
-            public void onFailure(@NonNull Call<AIRequest.DeepSeekResponse> call,
+            public void onFailure(@NonNull Call<ResponseBody> call,
                                    @NonNull Throwable t) {
                 callback.onError(new Exception("网络请求失败: " + t.getMessage()));
             }
@@ -532,6 +537,18 @@ public class AIRepository {
             Log.w(TAG, "实体转换失败", e);
             return null;
         }
+    }
+
+    /**
+     * 将历史记录实体完整转换为 AIAnalysis 对象（含原始响应文本解析）
+     * 供 UI 层点击历史记录时重新展示分析结果
+     */
+    public AIAnalysis getAnalysisFromEntity(AIAnalysisEntity entity) {
+        AIAnalysis analysis = entityToAnalysis(entity);
+        if (analysis != null && entity.getRawResponse() != null) {
+            parseAnalysisResponse(analysis, entity.getRawResponse());
+        }
+        return analysis;
     }
 
     public void clearAllHistory() {

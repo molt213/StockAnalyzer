@@ -2,6 +2,7 @@ package com.stockanalyzer.data.remote;
 
 import com.stockanalyzer.data.remote.dto.AIRequest;
 
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.Header;
@@ -19,7 +20,7 @@ public interface AiApiService {
      * Authorization: Bearer <api-key>
      */
     @POST("chat/completions")
-    Call<AIRequest.DeepSeekResponse> sendChatCompletion(
+    Call<ResponseBody> sendChatCompletion(
             @Header("Authorization") String authHeader,
             @Header("Content-Type") String contentType,
             @Body AIRequest.DeepSeekRequest request
@@ -29,7 +30,7 @@ public interface AiApiService {
      * Claude Messages API (备用)
      */
     @POST("messages")
-    Call<AIRequest.ClaudeResponse> sendClaudeMessage(
+    Call<ResponseBody> sendClaudeMessage(
             @Header("x-api-key") String apiKey,
             @Header("anthropic-version") String version,
             @Header("Content-Type") String contentType,
@@ -40,7 +41,7 @@ public interface AiApiService {
      * 通义千问兼容接口 (备用)
      */
     @POST("services/aigc/text-generation/generation")
-    Call<AIRequest.QwenResponse> sendQwenMessage(
+    Call<ResponseBody> sendQwenMessage(
             @Header("Authorization") String authHeader,
             @Body AIRequest.QwenRequest request
     );

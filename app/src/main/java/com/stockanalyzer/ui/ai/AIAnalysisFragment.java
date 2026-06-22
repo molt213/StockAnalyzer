@@ -327,10 +327,16 @@ public class AIAnalysisFragment extends Fragment {
     private void setupHistoryList() {
         historyAdapter = new AnalysisHistoryAdapter();
         historyAdapter.setOnHistoryClickListener(entity -> {
-            // 点击历史记录，填充股票代码
+            // 点击历史记录，填充股票代码并展示分析结果
             symbolInput.setText(entity.getStockSymbol());
-            Toast.makeText(requireContext(),
-                    "已填充 " + entity.getStockSymbol(), Toast.LENGTH_SHORT).show();
+
+            AIAnalysis analysis = aiRepository.getAnalysisFromEntity(entity);
+            if (analysis != null) {
+                showResult(analysis);
+            } else {
+                Toast.makeText(requireContext(),
+                        "无法读取分析记录", Toast.LENGTH_SHORT).show();
+            }
         });
         historyRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
         historyRecycler.setAdapter(historyAdapter);
