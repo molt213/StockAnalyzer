@@ -106,7 +106,10 @@ public class TencentScraper {
     /**
      * 获取实时行情
      * 腾讯格式: v_sh600519="1~贵州茅台~600519~1715.00~1720.00~1710.00~..."
-     * 字段: 1名称,2代码,3当前价,4昨收,5开盘,6成交量(手),7买价,8卖价,9最高,10最低
+     * 字段索引（0-based）:
+     *  1=名称, 2=代码, 3=当前价, 4=昨收, 5=开盘, 6=成交量(手)
+     *  7=外盘, 8=内盘, 9~18=买一~买五(价+量), 19~28=卖一~卖五(价+量)
+     *  33=今日最高价, 34=今日最低价
      */
     public void getQuote(String symbol, RepositoryCallback<Stock> callback) {
         executor.execute(() -> {
@@ -142,15 +145,15 @@ public class TencentScraper {
                 // 解析 CSV: v_sh600519="1~贵州茅台~600519~1715.00~..."
                 String dataStr = body.substring(body.indexOf("\"") + 1, body.lastIndexOf("\""));
                 String[] p = dataStr.split("~");
-                if (p.length < 10) { postError(callback, "数据格式异常"); return; }
+                if (p.length < 35) { postError(callback, "数据格式异常"); return; }
 
                 String code = p[2];
                 String name = p[1];
                 double currentPrice = parseDouble(p[3]);
                 double previousClose = parseDouble(p[4]);
                 double open = parseDouble(p[5]);
-                double high = parseDouble(p[9]);
-                double low = parseDouble(p[10]);
+                double high = parseDouble(p[33]);
+                double low = parseDouble(p[34]);
                 double change = currentPrice - previousClose;
                 double changePercent = previousClose > 0 ? (change / previousClose) * 100 : 0;
                 long volume = parseLong(p[6]) * 100; // 手转股
@@ -175,10 +178,11 @@ public class TencentScraper {
         });
     }
 
-    // ========== K 线数据（新浪财经备用） ==========
+    // ========== K 线数据（新浪财经备用，含多 URL 容错） ==========
 
     /**
      * 获取 K 线数据（使用新浪财经接口）
+     * 尝试多个 URL，支持月K格式 yyyy-MM
      */
     public void getHistoricalData(String symbol, String resolution, int days,
                                    RepositoryCallback<List<StockDetail.CandleData>> callback) {
@@ -187,70 +191,98 @@ public class TencentScraper {
                 String sinaSymbol = toSinaSymbol(symbol);
                 int count = getCount(resolution, days);
                 int scale = getScale(resolution);
-                String url = SINA_KLINE_URL + "?symbol=" + sinaSymbol + "&datalen=" + count + "&scale=" + scale;
 
-                Request request = new Request.Builder()
-                        .url(url)
-                        .addHeader("Referer", "https://finance.sina.com.cn/")
-                        .build();
-                Response response = client.newCall(request).execute();
-                String body = response.body() != null ? response.body().string() : "";
-                response.close();
+                // 尝试多个 URL
+                String[] urls = {
+                    SINA_KLINE_URL + "?symbol=" + sinaSymbol + "&datalen=" + count + "&scale=" + scale,
+                    SINA_KLINE_URL + "?symbol=" + sinaSymbol + "&datalen=" + count,
+                    "https://quotes.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData"
+                        + "?symbol=" + sinaSymbol + "&datalen=" + count + "&scale=" + scale,
+                };
 
-                List<StockDetail.CandleData> dataList = new ArrayList<>();
-                if (body == null || body.isEmpty() || body.equals("null")) {
-                    mainHandler.post(() -> callback.onSuccess(dataList));
-                    return;
-                }
-
-                JSONArray arr = new JSONArray(body);
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-
-                for (int i = 0; i < arr.length(); i++) {
+                final List<StockDetail.CandleData>[] resultRef = new List[]{null};
+                for (String url : urls) {
                     try {
-                        JSONObject item = arr.getJSONObject(i);
-                        String day = item.getString("day");
-                        // 兼容多种日期格式: yyyy-MM-dd, yyyyMMdd, yyyy-MM
-                        long timestamp = 0;
-                        try {
-                            Date date = sdf.parse(day);
-                            if (date != null) timestamp = date.getTime() / 1000;
-                        } catch (Exception e) {
-                            try {
-                                SimpleDateFormat sdf2 = new SimpleDateFormat("yyyyMMdd", Locale.US);
-                                Date date = sdf2.parse(day);
-                                if (date != null) timestamp = date.getTime() / 1000;
-                            } catch (Exception e2) {
-                                // 尝试 yyyy-MM 格式（月K用）
-                                try {
-                                    SimpleDateFormat sdf3 = new SimpleDateFormat("yyyy-MM", Locale.US);
-                                    Date date = sdf3.parse(day);
-                                    if (date != null) timestamp = date.getTime() / 1000;
-                                } catch (Exception e3) {
-                                    continue;
-                                }
-                            }
+                        Request request = new Request.Builder()
+                                .url(url)
+                                .addHeader("Referer", "https://finance.sina.com.cn/")
+                                .build();
+                        Response response = client.newCall(request).execute();
+                        String body = response.body() != null ? response.body().string() : "";
+                        response.close();
+
+                        if (body == null || body.isEmpty() || body.equals("null")) continue;
+
+                        JSONArray arr = new JSONArray(body);
+                        List<StockDetail.CandleData> parsed = parseKLineJson(arr);
+                        if (parsed != null && !parsed.isEmpty()) {
+                            Log.d(TAG, "K线数据获取成功: " + url + " → " + parsed.size() + "条");
+                            resultRef[0] = parsed;
+                            break;
                         }
-                        dataList.add(new StockDetail.CandleData(
-                                timestamp,
-                                item.getDouble("open"),
-                                item.getDouble("high"),
-                                item.getDouble("low"),
-                                item.getDouble("close"),
-                                item.optLong("volume", 0)
-                        ));
                     } catch (Exception e) {
-                        Log.w(TAG, "解析K线行失败", e);
+                        Log.w(TAG, "K线接口失败，换下一个: " + url, e);
                     }
                 }
 
-                mainHandler.post(() -> callback.onSuccess(dataList));
+                final List<StockDetail.CandleData> finalData =
+                    resultRef[0] != null ? resultRef[0] : new ArrayList<>();
+                mainHandler.post(() -> callback.onSuccess(finalData));
 
             } catch (Exception e) {
                 Log.e(TAG, "K线失败", e);
                 mainHandler.post(() -> callback.onSuccess(new ArrayList<>()));
             }
         });
+    }
+
+    /**
+     * 解析新浪 K 线 JSON 数组
+     * 兼容 yyyy-MM-dd、yyyyMMdd、yyyy-MM（月K）三种日期格式
+     */
+    private List<StockDetail.CandleData> parseKLineJson(JSONArray arr) {
+        List<StockDetail.CandleData> dataList = new ArrayList<>();
+        SimpleDateFormat sdf1 = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        SimpleDateFormat sdf2 = new SimpleDateFormat("yyyyMMdd", Locale.US);
+        SimpleDateFormat sdf3 = new SimpleDateFormat("yyyy-MM", Locale.US);
+
+        for (int i = 0; i < arr.length(); i++) {
+            try {
+                JSONObject item = arr.getJSONObject(i);
+                String day = item.getString("day");
+
+                long timestamp = 0;
+                try {
+                    Date date = sdf1.parse(day);
+                    if (date != null) timestamp = date.getTime() / 1000;
+                } catch (Exception e) {
+                    try {
+                        Date date = sdf2.parse(day);
+                        if (date != null) timestamp = date.getTime() / 1000;
+                    } catch (Exception e2) {
+                        try {
+                            Date date = sdf3.parse(day);
+                            if (date != null) timestamp = date.getTime() / 1000;
+                        } catch (Exception e3) {
+                            Log.w(TAG, "K线日期解析失败: " + day);
+                            continue;
+                        }
+                    }
+                }
+
+                dataList.add(new StockDetail.CandleData(
+                        timestamp,
+                        item.getDouble("open"),
+                        item.getDouble("high"),
+                        item.getDouble("low"),
+                        item.getDouble("close"),
+                        item.optLong("volume", 0)
+                ));
+            } catch (Exception e) {
+                Log.w(TAG, "解析K线行失败", e);
+            }
+        }
+        return dataList;
     }
 
     private int getScale(String resolution) {

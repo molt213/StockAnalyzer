@@ -17,9 +17,18 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.github.mikephil.charting.charts.CandleStickChart;
+import com.github.mikephil.charting.charts.CombinedChart;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.data.CandleData;
+import com.github.mikephil.charting.data.CandleDataSet;
+import com.github.mikephil.charting.data.CandleEntry;
+import com.github.mikephil.charting.data.CombinedData;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
@@ -36,6 +45,7 @@ import com.stockanalyzer.data.model.StockDetail;
 import com.stockanalyzer.data.remote.dto.StockResponse;
 import com.stockanalyzer.util.Constants;
 import com.stockanalyzer.util.FormatUtils;
+import com.stockanalyzer.util.TechnicalIndicators;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,7 +69,9 @@ public class DetailActivity extends AppCompatActivity {
     private TextView marketCapText, peText, epsText, week52Text;
     private TextView circulatingMarketCapText, turnoverRateText;
     private TextView descriptionText;
-    private LineChart priceChart;
+    private CandleStickChart priceChart;
+    private CombinedChart macdChart;
+    private LineChart rsiChart;
     private SwipeRefreshLayout swipeRefresh;
     private RecyclerView newsRecycler;
     private NewsAdapter newsAdapter;
@@ -86,6 +98,7 @@ public class DetailActivity extends AppCompatActivity {
 
         initViews();
         setupChart();
+        setupIndicatorCharts();
         setupNewsList();
         setupToolbar(symbol, stockName);
         observeData();
@@ -111,6 +124,8 @@ public class DetailActivity extends AppCompatActivity {
         week52Text = findViewById(R.id.detail_52w);
         descriptionText = findViewById(R.id.detail_description);
         priceChart = findViewById(R.id.price_chart);
+        macdChart = findViewById(R.id.macd_chart);
+        rsiChart = findViewById(R.id.rsi_chart);
         newsRecycler = findViewById(R.id.news_recycler);
         swipeRefresh = findViewById(R.id.detail_swipe_refresh);
 
@@ -199,6 +214,8 @@ public class DetailActivity extends AppCompatActivity {
         priceChart.setPinchZoom(true);
         priceChart.setDrawGridBackground(false);
         priceChart.setBackgroundColor(Color.TRANSPARENT);
+        priceChart.setMaxVisibleValueCount(0);
+        priceChart.setDrawBorders(false);
 
         XAxis xAxis = priceChart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
@@ -213,6 +230,56 @@ public class DetailActivity extends AppCompatActivity {
 
         priceChart.getAxisRight().setEnabled(false);
         priceChart.getLegend().setEnabled(false);
+    }
+
+    private void setupIndicatorCharts() {
+        // MACD 图表
+        macdChart.getDescription().setEnabled(false);
+        macdChart.setTouchEnabled(false);
+        macdChart.setDrawGridBackground(false);
+        macdChart.setBackgroundColor(Color.TRANSPARENT);
+        macdChart.setScaleEnabled(false);
+        macdChart.getLegend().setTextColor(Color.GRAY);
+
+        XAxis macdX = macdChart.getXAxis();
+        macdX.setPosition(XAxis.XAxisPosition.TOP);
+        macdX.setTextColor(Color.GRAY);
+        macdX.setDrawGridLines(false);
+        macdX.setLabelCount(3, false);
+        macdX.setDrawLabels(false);
+
+        YAxis macdLeft = macdChart.getAxisLeft();
+        macdLeft.setTextColor(Color.GRAY);
+        macdLeft.setDrawGridLines(true);
+        macdLeft.setGridColor(Color.LTGRAY);
+        macdLeft.setLabelCount(3, false);
+
+        macdChart.getAxisRight().setEnabled(false);
+
+        // RSI 图表
+        rsiChart.getDescription().setEnabled(false);
+        rsiChart.setTouchEnabled(false);
+        rsiChart.setDrawGridBackground(false);
+        rsiChart.setBackgroundColor(Color.TRANSPARENT);
+        rsiChart.setScaleEnabled(false);
+        rsiChart.getLegend().setTextColor(Color.GRAY);
+
+        XAxis rsiX = rsiChart.getXAxis();
+        rsiX.setPosition(XAxis.XAxisPosition.TOP);
+        rsiX.setTextColor(Color.GRAY);
+        rsiX.setDrawGridLines(false);
+        rsiX.setLabelCount(3, false);
+        rsiX.setDrawLabels(false);
+
+        YAxis rsiLeft = rsiChart.getAxisLeft();
+        rsiLeft.setTextColor(Color.GRAY);
+        rsiLeft.setDrawGridLines(true);
+        rsiLeft.setGridColor(Color.LTGRAY);
+        rsiLeft.setAxisMinimum(0);
+        rsiLeft.setAxisMaximum(100);
+        rsiLeft.setLabelCount(4, false);
+
+        rsiChart.getAxisRight().setEnabled(false);
     }
 
     private void setupNewsList() {
@@ -356,30 +423,29 @@ public class DetailActivity extends AppCompatActivity {
 
         chartDataCache = data;
 
-        List<Entry> entries = new ArrayList<>();
-        boolean isUp = true;
-
+        // K线柱: 每个 CandleEntry 包含 时间x, 最高, 最低, 开盘, 收盘
+        List<CandleEntry> candleEntries = new ArrayList<>();
         for (int i = 0; i < data.size(); i++) {
             StockDetail.CandleData candle = data.get(i);
-            entries.add(new Entry(i, (float) candle.getClose()));
-            if (i == data.size() - 1) {
-                isUp = candle.getClose() >= (data.size() > 1
-                        ? data.get(data.size() - 2).getClose() : candle.getClose());
-            }
+            candleEntries.add(new CandleEntry(
+                    i,
+                    (float) candle.getHigh(),     // 上影线最高
+                    (float) candle.getLow(),       // 下影线最低
+                    (float) candle.getOpen(),      // 开盘价
+                    (float) candle.getClose()      // 收盘价
+            ));
         }
 
-        LineDataSet dataSet = new LineDataSet(entries, "价格");
-        int lineColor = isUp ? getColor(R.color.chart_up) : getColor(R.color.chart_down);
-        int fillColor = isUp ? getColor(R.color.stock_up_bg) : getColor(R.color.stock_down_bg);
-
-        dataSet.setColor(lineColor);
-        dataSet.setLineWidth(2f);
-        dataSet.setDrawCircles(false);
-        dataSet.setDrawValues(false);
-        dataSet.setMode(LineDataSet.Mode.CUBIC_BEZIER);
-        dataSet.setDrawFilled(true);
-        dataSet.setFillColor(fillColor);
-        dataSet.setFillAlpha(40);
+        CandleDataSet candleSet = new CandleDataSet(candleEntries, "K线");
+        // 阳线(close>open)→红色, 阴线(close<open)→绿色（中国习惯）
+        candleSet.setIncreasingColor(getColor(R.color.stock_up));     // 阳线: 红
+        candleSet.setDecreasingColor(getColor(R.color.stock_down));   // 阴线: 绿
+        candleSet.setNeutralColor(Color.GRAY);
+        candleSet.setShadowColor(Color.GRAY);         // 影线灰色
+        candleSet.setShadowWidth(0.8f);
+        candleSet.setBarSpace(0.3f);                  // 柱间距
+        candleSet.setDrawValues(false);
+        candleSet.setHighlightLineWidth(0.5f);
 
         // X 轴显示日期
         XAxis xAxis = priceChart.getXAxis();
@@ -402,8 +468,8 @@ public class DetailActivity extends AppCompatActivity {
             }
         });
 
-        LineData lineData = new LineData(dataSet);
-        priceChart.setData(lineData);
+        CandleData candleData = new CandleData(candleSet);
+        priceChart.setData(candleData);
         priceChart.notifyDataSetChanged();
         priceChart.fitScreen();
         priceChart.getXAxis().resetAxisMinimum();
@@ -429,11 +495,169 @@ public class DetailActivity extends AppCompatActivity {
         });
 
         priceChart.invalidate();
+
+        // 更新 MACD 和 RSI 子图
+        updateIndicatorCharts(data);
     }
 
-    /**
-     * 启动详情页
-     */
+    // ========== MACD / RSI 指标图 ==========
+
+    private void updateIndicatorCharts(List<StockDetail.CandleData> data) {
+        if (data == null || data.size() < 30) {
+            macdChart.setNoDataText("数据不足，无法计算");
+            macdChart.invalidate();
+            rsiChart.setNoDataText("数据不足，无法计算");
+            rsiChart.invalidate();
+            return;
+        }
+        renderMACD(data);
+        renderRSI(data);
+    }
+
+    private void renderMACD(List<StockDetail.CandleData> data) {
+        TechnicalIndicators.MACDResult result = TechnicalIndicators.calculateMACD(data);
+        int n = data.size();
+
+        // DIF 线
+        List<Entry> difEntries = new ArrayList<>();
+        // DEA 线
+        List<Entry> deaEntries = new ArrayList<>();
+        // MACD 柱
+        List<BarEntry> barEntries = new ArrayList<>();
+
+        // 找到 MACD 的绝对值最大值用于 Y 轴缩放
+        float maxAbsMacd = 0;
+        for (int i = 0; i < n; i++) {
+            float macdVal = result.macd.get(i).floatValue();
+            if (Math.abs(macdVal) > maxAbsMacd) maxAbsMacd = Math.abs(macdVal);
+        }
+        if (maxAbsMacd < 0.01f) maxAbsMacd = 1f;
+
+        for (int i = 0; i < n; i++) {
+            difEntries.add(new Entry(i, result.dif.get(i).floatValue()));
+            deaEntries.add(new Entry(i, result.dea.get(i).floatValue()));
+            float macdVal = result.macd.get(i).floatValue();
+            barEntries.add(new BarEntry(i, macdVal));
+        }
+
+        LineDataSet difSet = new LineDataSet(difEntries, "DIF");
+        difSet.setColor(Color.rgb(33, 150, 243));    // 蓝色
+        difSet.setLineWidth(1.2f);
+        difSet.setDrawCircles(false);
+        difSet.setDrawValues(false);
+        difSet.setMode(LineDataSet.Mode.LINEAR);
+
+        LineDataSet deaSet = new LineDataSet(deaEntries, "DEA");
+        deaSet.setColor(Color.rgb(255, 152, 0));      // 橙色
+        deaSet.setLineWidth(1.2f);
+        deaSet.setDrawCircles(false);
+        deaSet.setDrawValues(false);
+        deaSet.setMode(LineDataSet.Mode.LINEAR);
+
+        // MACD 柱状图：用匿名类动态着色（正值→红色/涨，负值→绿色/跌）
+        BarDataSet barSet = new BarDataSet(barEntries, "MACD") {
+            @Override
+            public int getColor(int index) {
+                BarEntry entry = getEntryForIndex(index);
+                if (entry != null && entry.getY() >= 0) {
+                    return getColor(R.color.stock_up);     // 正→红色（多头）
+                }
+                return getColor(R.color.stock_down);        // 负→绿色（空头）
+            }
+        };
+        barSet.setDrawValues(false);
+        barSet.setValueTextColor(Color.TRANSPARENT);
+
+        // 组合数据
+        CombinedData combined = new CombinedData();
+        combined.setData(new LineData(difSet, deaSet));
+        combined.setData(new BarData(barSet));
+
+        // BarData 宽度调整（默认 0.85f 可能太宽）
+        combined.getBarData().setBarWidth(0.6f);
+
+        XAxis xAxis = macdChart.getXAxis();
+        xAxis.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                int idx = Math.round(value);
+                if (idx >= 0 && idx < n) {
+                    return FormatUtils.formatDate(data.get(idx).getTimestamp());
+                }
+                return "";
+            }
+        });
+
+        YAxis leftAxis = macdChart.getAxisLeft();
+        leftAxis.setAxisMinimum(-maxAbsMacd * 1.3f);
+        leftAxis.setAxisMaximum(maxAbsMacd * 1.3f);
+
+        macdChart.setData(combined);
+        macdChart.notifyDataSetChanged();
+        macdChart.fitScreen();
+        macdChart.invalidate();
+    }
+
+    private void renderRSI(List<StockDetail.CandleData> data) {
+        List<Double> rsiValues = TechnicalIndicators.calculateRSI(data);
+        int n = rsiValues.size();
+
+        List<Entry> rsiEntries = new ArrayList<>();
+        List<Entry> overbought = new ArrayList<>();
+        List<Entry> oversold = new ArrayList<>();
+
+        for (int i = 0; i < n; i++) {
+            float v = rsiValues.get(i).floatValue();
+            rsiEntries.add(new Entry(i, v));
+            overbought.add(new Entry(i, 70f));
+            oversold.add(new Entry(i, 30f));
+        }
+
+        // RSI 主线条
+        LineDataSet rsiSet = new LineDataSet(rsiEntries, "RSI");
+        rsiSet.setColor(Color.rgb(156, 39, 176));     // 紫色
+        rsiSet.setLineWidth(1.5f);
+        rsiSet.setDrawCircles(false);
+        rsiSet.setDrawValues(false);
+        rsiSet.setMode(LineDataSet.Mode.LINEAR);
+
+        // 超买线 70
+        LineDataSet obSet = new LineDataSet(overbought, "超买");
+        obSet.setColor(Color.RED);
+        obSet.setLineWidth(0.8f);
+        obSet.setDrawCircles(false);
+        obSet.setDrawValues(false);
+        obSet.enableDashedLine(8f, 4f, 0f);
+
+        // 超卖线 30
+        LineDataSet osSet = new LineDataSet(oversold, "超卖");
+        osSet.setColor(Color.rgb(76, 175, 80));        // 绿色
+        osSet.setLineWidth(0.8f);
+        osSet.setDrawCircles(false);
+        osSet.setDrawValues(false);
+        osSet.enableDashedLine(8f, 4f, 0f);
+
+        // 中线 50
+        List<Entry> midEntries = new ArrayList<>();
+        for (int i = 0; i < n; i++) midEntries.add(new Entry(i, 50f));
+        LineDataSet midSet = new LineDataSet(midEntries, "中线");
+        midSet.setColor(Color.GRAY);
+        midSet.setLineWidth(0.5f);
+        midSet.setDrawCircles(false);
+        midSet.setDrawValues(false);
+        midSet.enableDashedLine(4f, 4f, 0f);
+
+        LineData lineData = new LineData(rsiSet, obSet, osSet, midSet);
+
+        // Y 轴始终 0-100
+        rsiChart.getAxisLeft().setAxisMinimum(0);
+        rsiChart.getAxisLeft().setAxisMaximum(100);
+
+        rsiChart.setData(lineData);
+        rsiChart.notifyDataSetChanged();
+        rsiChart.fitScreen();
+        rsiChart.invalidate();
+    }
     public static void start(Context context, String symbol, String stockName) {
         Intent intent = new Intent(context, DetailActivity.class);
         intent.putExtra(Constants.EXTRA_SYMBOL, symbol);
