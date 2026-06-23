@@ -1,5 +1,17 @@
 # 更新日志
 
+## v1.0.5 (2026-06-23)
+
+### 🐛 Bug 修复
+- **修复Fragment异步回调导致的闪退**：DashboardFragment和SearchFragment中网络请求回调在Fragment销毁后仍调用 `requireActivity()`/`requireContext()` 导致 `IllegalStateException`：
+  - 所有回调入口增加 `isAdded()` 和 `getActivity() != null` 双重保护
+  - 自动刷新增加 `isFragmentVisible` 生命周期标志位，页面不可见时跳过数据加载
+- **设置页UI调整**：移除API配置下的"A股数据来自东方财富爬虫"提示文字；关于页底部添加GitHub仓库链接按钮
+
+### 🔧 技术改进
+- Fragment异步回调统一安全模式：先检查生命周期状态再访问Context/Activity
+- app 版本号升级至 1.0.5（versionCode 6）
+
 ## v1.0.4 (2026-06-23)
 
 ### ✨ 新功能
