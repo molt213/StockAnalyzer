@@ -51,6 +51,7 @@ public class DashboardFragment extends Fragment {
     private StockRepository repository;
     private Handler autoRefreshHandler;
     private boolean isAutoRefreshRunning = false;
+    private boolean isFragmentVisible = false;
 
     private final Runnable autoRefreshRunnable = new Runnable() {
         @Override
@@ -114,6 +115,7 @@ public class DashboardFragment extends Fragment {
     private void setupRecyclerView() {
         adapter = new StockAdapter();
         adapter.setOnStockClickListener(stock -> {
+            if (!isAdded() || getContext() == null) return;
             DetailActivity.start(requireContext(), stock.getSymbol(), stock.getName());
         });
         watchlistRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -126,6 +128,7 @@ public class DashboardFragment extends Fragment {
     }
 
     private void loadWatchlistData() {
+        if (!isFragmentVisible || !isAdded()) return;
         if (!NetworkUtils.isNetworkAvailable()) {
             // 从数据库加载离线数据
             loadFromDatabase();
@@ -202,6 +205,7 @@ public class DashboardFragment extends Fragment {
             public void onSuccess(List<Stock> indices) {
                 if (getActivity() == null || indices == null) return;
                 getActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
                     for (int i = 0; i < Math.min(indices.size(), 4); i++) {
                         Stock idx = indices.get(i);
                         if (i < indexValues.length && indexValues[i] != null) {
@@ -229,9 +233,10 @@ public class DashboardFragment extends Fragment {
         repository.getMarketNews(new StockRepository.RepositoryCallback<List<StockDetail.NewsItem>>() {
             @Override
             public void onSuccess(List<StockDetail.NewsItem> data) {
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> marketNewsAdapter.submitList(data));
-                }
+                if (!isFragmentVisible || !isAdded() || getActivity() == null) return;
+                getActivity().runOnUiThread(() -> {
+                    if (isAdded()) marketNewsAdapter.submitList(data);
+                });
             }
             @Override
             public void onError(Exception e) { }
@@ -239,7 +244,9 @@ public class DashboardFragment extends Fragment {
     }
 
     private void updateUI(List<Stock> stocks) {
-        requireActivity().runOnUiThread(() -> {
+        if (!isAdded() || getActivity() == null) return;
+        getActivity().runOnUiThread(() -> {
+            if (!isAdded()) return;
             adapter.submitList(stocks);
             updateLastUpdateTime();
             swipeRefresh.setRefreshing(false);
@@ -281,6 +288,7 @@ public class DashboardFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        isFragmentVisible = true;
         loadWatchlistData();
         // 启动自动刷新
         if (StockAnalyzerApp.getInstance().getPreferences()
@@ -292,6 +300,7 @@ public class DashboardFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
+        isFragmentVisible = false;
         stopAutoRefresh();
     }
 

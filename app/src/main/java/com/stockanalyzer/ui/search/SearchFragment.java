@@ -144,7 +144,9 @@ public class SearchFragment extends Fragment {
             @Override
             public void onSuccess(List<Stock> data) {
                 Log.d("SearchFragment", "搜索结果: " + (data != null ? data.size() : "null") + "条");
+                if (!isAdded() || getActivity() == null) return;
                 requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
                     searchLoading.setVisibility(View.GONE);
                     if (data.isEmpty()) {
                         Toast.makeText(requireContext(),
@@ -153,7 +155,6 @@ public class SearchFragment extends Fragment {
                     } else {
                         resultAdapter.submitList(data);
                         searchResults.setVisibility(View.VISIBLE);
-                        // 将第一个搜索结果加入历史
                         if (!data.isEmpty()) addToHistory(data.get(0));
                     }
                 });
@@ -161,7 +162,9 @@ public class SearchFragment extends Fragment {
 
             @Override
             public void onError(Exception e) {
+                if (!isAdded() || getActivity() == null) return;
                 requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
                     searchLoading.setVisibility(View.GONE);
                     Toast.makeText(requireContext(),
                             "搜索失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
