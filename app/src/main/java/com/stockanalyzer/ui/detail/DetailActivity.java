@@ -387,9 +387,9 @@ public class DetailActivity extends AppCompatActivity {
                 circulatingMarketCapText.setText(detail.getCirculatingMarketCap());
             } else { circulatingMarketCapText.setText("N/A"); }
 
-            // 市盈率（ETF/商品不适用时隐藏整行）
-            if (detail.getPeRatio() > 0) {
-                peText.setText(String.format(Locale.US, "%.2f", detail.getPeRatio()));
+            // 指数盈利 = 1/PE * 100%（ETF/商品不适用时隐藏整行）
+            if (detail.getEarningsYield() > 0) {
+                peText.setText(String.format(Locale.US, "%.2f%%", detail.getEarningsYield()));
                 if (peContainer != null) peContainer.setVisibility(View.VISIBLE);
             } else {
                 if (peContainer != null) peContainer.setVisibility(View.GONE);
@@ -400,9 +400,15 @@ public class DetailActivity extends AppCompatActivity {
                 turnoverRateText.setText(detail.getTurnoverRate());
             } else { turnoverRateText.setText("N/A"); }
 
-            // 每股收益 EPS（ETF/商品不适用时隐藏整行）
-            if (detail.getEps() > 0) {
-                epsText.setText(String.format(Locale.US, "%.2f", detail.getEps()));
+            // 历史PE分位数（ETF/商品不适用时隐藏整行）
+            if (detail.getPePercentile() > 0) {
+                double pct = detail.getPePercentile();
+                // 添加高低提示：>70 偏高，<30 偏低
+                String suffix = pct >= 70 ? " ⬆" : pct <= 30 ? " ⬇" : "";
+                epsText.setText(String.format(Locale.US, "%.1f%%%s", pct, suffix));
+                epsText.setTextColor(pct >= 70 ? getColor(R.color.stock_down)
+                        : pct <= 30 ? getColor(R.color.stock_up)
+                        : getColor(isDarkMode ? R.color.dark_text_primary : R.color.text_primary));
                 if (epsContainer != null) epsContainer.setVisibility(View.VISIBLE);
             } else {
                 if (epsContainer != null) epsContainer.setVisibility(View.GONE);
@@ -420,8 +426,13 @@ public class DetailActivity extends AppCompatActivity {
         // Finnhub 美股数据走这里；A 股数据直接从 StockDetail 获取（见 updateCompanyUI）
         // 只有当 metrics 有具体值时覆盖，避免覆盖 A 股来自 StockDetail 的数据
         if (metrics == null) return;
-        if (metrics.peRatio != null) peText.setText(String.format(Locale.US, "%.2f", metrics.peRatio));
-        if (metrics.epsTtm != null) epsText.setText(String.format(Locale.US, "%.2f", metrics.epsTtm));
+        // 美股也显示指数盈利
+        if (metrics.peRatio != null && metrics.peRatio > 0) {
+            peText.setText(String.format(Locale.US, "%.2f%%", 100.0 / metrics.peRatio));
+            if (peContainer != null) peContainer.setVisibility(View.VISIBLE);
+        }
+        // PE分位数美股暂不支持（无历史数据源），隐藏
+        if (epsContainer != null) epsContainer.setVisibility(View.GONE);
         if (metrics.week52Low != null && metrics.week52High != null)
             week52Text.setText(String.format(Locale.US, "%.2f - %.2f", metrics.week52Low, metrics.week52High));
     }

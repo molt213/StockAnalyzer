@@ -18,6 +18,8 @@ public class StockDetail {
     private String turnoverRate;          // 换手率
     private double peRatio;
     private double eps;
+    private double earningsYield;      // 指数盈利 = 1/PE * 100%
+    private double pePercentile;       // 历史PE分位数（当前PE在历史中的位置 %）
     private double beta;
     private double week52High;
     private double week52Low;
@@ -62,6 +64,12 @@ public class StockDetail {
 
     public double getEps() { return eps; }
     public void setEps(double eps) { this.eps = eps; }
+
+    public double getEarningsYield() { return earningsYield; }
+    public void setEarningsYield(double earningsYield) { this.earningsYield = earningsYield; }
+
+    public double getPePercentile() { return pePercentile; }
+    public void setPePercentile(double pePercentile) { this.pePercentile = pePercentile; }
 
     public double getBeta() { return beta; }
     public void setBeta(double beta) { this.beta = beta; }

@@ -477,6 +477,8 @@ public class EastMoneyScraper {
                             double price = data.optDouble("f43", 0) / 100.0;
                             if (pe > 0 && price > 0) {
                                 detail.setEps(price / pe);
+                                // 指数盈利 = 1 / PE * 100%
+                                detail.setEarningsYield(100.0 / pe);
                             }
                             // 流通市值 f117
                             double cmv = data.optDouble("f117", 0);
@@ -494,6 +496,12 @@ public class EastMoneyScraper {
                             // 52周最高 f167, 52周最低 f168
                             detail.setWeek52High(data.optDouble("f167", 0));
                             detail.setWeek52Low(data.optDouble("f168", 0));
+
+                            // 如果有PE数据，计算历史PE分位数
+                            if (pe > 0 && price > 0) {
+                                double percentile = calcPePercentile(secId);
+                                detail.setPePercentile(percentile);
+                            }
                         }
                     } catch (Exception e) {
                         Log.w(TAG, "行情数据解析失败", e);
@@ -510,6 +518,57 @@ public class EastMoneyScraper {
     }
 
     // ========== 搜索 ==========
+
+    /**
+     * 计算历史PE分位数
+     * 从K线数据中取过去一年的日线收盘价，结合当前PE估值，估算当前PE处于历史什么位置
+     * @return 百分位数 (0~100)，例如 85 表示比过去一年 85% 的时间都贵
+     */
+    private double calcPePercentile(String secId) {
+        try {
+            String url = EASTMONEY_KLINE_URL
+                    + "?secid=" + secId
+                    + "&ut=fa5fd1943c7b386f172d6893dbfd32bb"
+                    + "&fields1=f1,f2,f3,f4,f5,f6"
+                    + "&fields2=f51,f52,f53,f54,f55,f56"
+                    + "&klt=101"       // 日K
+                    + "&fqt=1"         // 前复权
+                    + "&end=20500101"
+                    + "&lmt=250";       // 约1年交易日
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("Referer", "https://quote.eastmoney.com/")
+                    .addHeader("User-Agent", "Mozilla/5.0")
+                    .build();
+            Response response = client.newCall(request).execute();
+            String body = response.body() != null ? response.body().string() : "";
+            response.close();
+
+            List<StockDetail.CandleData> klines = parseKLine(body);
+            if (klines.size() < 20) return 0;  // 数据太少无法计算
+
+            // 读取最新的收盘价 = klines中最后一根K线的收盘价
+            // 注：当前价格从外部传入，但K线的最后一根一般是最近交易日
+            // 我们直接用K线自身的数据计算近似分位数
+            int n = klines.size();
+            double latestClose = klines.get(n - 1).getClose();
+
+            // 计算"相对PE倍数" = 每根K线收盘价 / 最新收盘价
+            // 假设EPS在一年内变化不大，则 PE ≈ close / eps ≈ close * (pe_current / price_current)
+            // 所以相对PE倍数 ≈ close / latestClose，倍数=1时就是当前PE值
+            int belowCount = 0;
+            for (int i = 0; i < n; i++) {
+                double ratio = klines.get(i).getClose() / latestClose;
+                if (ratio <= 1.0) belowCount++;
+            }
+            return (double) belowCount / n * 100.0;
+
+        } catch (Exception e) {
+            Log.w(TAG, "计算PE分位数失败", e);
+            return 0;
+        }
+    }
 
     /**
      * 搜索股票/ETF/商品
