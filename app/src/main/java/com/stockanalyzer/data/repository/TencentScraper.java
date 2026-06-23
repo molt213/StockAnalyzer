@@ -357,6 +357,8 @@ public class TencentScraper {
                                 double curPrice = parseDouble(p[3]);
                                 if (curPrice > 0) {
                                     detail.setEps(curPrice / pe);
+                                    // 指数盈利 = 1/PE * 100%
+                                    detail.setEarningsYield(100.0 / pe);
                                 }
                             }
                         }
@@ -373,6 +375,22 @@ public class TencentScraper {
                         }
                         if (p.length > 48) {
                             detail.setWeek52Low(parseDouble(p[48]));
+                        }
+
+                        // 振幅 = (最高 - 最低) / 昨收 * 100%
+                        if (p.length > 34) {
+                            double high = parseDouble(p[33]);
+                            double low = parseDouble(p[34]);
+                            double prevClose = parseDouble(p[4]);
+                            if (high > 0 && prevClose > 0) {
+                                detail.setAmplitude((high - low) / prevClose * 100.0);
+                            }
+                        }
+                        // 成交额 = 股价 × 成交量(股)
+                        double curPrice = p.length > 3 ? parseDouble(p[3]) : 0;
+                        double vol = p.length > 6 ? parseDouble(p[6]) * 100 : 0; // 手→股
+                        if (curPrice > 0 && vol > 0) {
+                            detail.setTurnoverAmount(curPrice * vol);
                         }
                     }
                 }
