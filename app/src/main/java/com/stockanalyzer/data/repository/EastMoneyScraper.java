@@ -497,17 +497,17 @@ public class EastMoneyScraper {
                             detail.setWeek52High(data.optDouble("f167", 0));
                             detail.setWeek52Low(data.optDouble("f168", 0));
 
-                            // 获取一年K线数据，用于计算多种指标
-                            List<StockDetail.CandleData> yearKlines = fetchYearKlines(secId);
-                            if (yearKlines.size() >= 20) {
-                                if (pe > 0 && price > 0) {
-                                    // 有PE → 计算历史PE分位数
-                                    double pct = calcPePercentile(yearKlines);
-                                    detail.setPePercentile(pct);
-                                }
-                                // 对所有ETF都计算年化波动率和近1年涨幅
-                                detail.setAnnualVolatility(calcAnnualVolatility(yearKlines));
-                                detail.setYearlyReturn(calcYearlyReturn(yearKlines));
+                            // 振幅 = (最高 - 最低) / 昨收 * 100%（所有品种通用）
+                            double high = data.optDouble("f44", 0) / 100.0;
+                            double low = data.optDouble("f45", 0) / 100.0;
+                            double prevClose = fetchPreKPrice(secId);
+                            if (price > 0 && prevClose > 0) {
+                                detail.setAmplitude((high - low) / prevClose * 100.0);
+                            }
+                            // 成交额 = 股价 × 成交量(股)（所有品种通用）
+                            double volShares = data.optDouble("f52", 0) * 100; // 手→股
+                            if (price > 0 && volShares > 0) {
+                                detail.setTurnoverAmount(price * volShares);
                             }
                         }
                     } catch (Exception e) {
@@ -527,83 +527,12 @@ public class EastMoneyScraper {
     // ========== 搜索 ==========
 
     /**
-     * 获取过去一年的日K线数据（前复权）
+     * 格式化成交额（元 → 万/亿）
      */
-    private List<StockDetail.CandleData> fetchYearKlines(String secId) {
-        try {
-            String url = EASTMONEY_KLINE_URL
-                    + "?secid=" + secId
-                    + "&ut=fa5fd1943c7b386f172d6893dbfd32bb"
-                    + "&fields1=f1,f2,f3,f4,f5,f6"
-                    + "&fields2=f51,f52,f53,f54,f55,f56"
-                    + "&klt=101"       // 日K
-                    + "&fqt=1"         // 前复权
-                    + "&end=20500101"
-                    + "&lmt=250";       // 约1年交易日
-
-            Request request = new Request.Builder()
-                    .url(url)
-                    .addHeader("Referer", "https://quote.eastmoney.com/")
-                    .addHeader("User-Agent", "Mozilla/5.0")
-                    .build();
-            Response response = client.newCall(request).execute();
-            String body = response.body() != null ? response.body().string() : "";
-            response.close();
-            return parseKLine(body);
-        } catch (Exception e) {
-            Log.w(TAG, "获取年K线失败", e);
-            return new ArrayList<>();
-        }
-    }
-
-    /**
-     * 计算历史PE分位数
-     * 从K线数据中估算当前PE处于历史什么位置
-     */
-    private double calcPePercentile(List<StockDetail.CandleData> klines) {
-        if (klines.size() < 20) return 0;
-        int n = klines.size();
-        double latestClose = klines.get(n - 1).getClose();
-        int belowCount = 0;
-        for (int i = 0; i < n; i++) {
-            if (klines.get(i).getClose() / latestClose <= 1.0) belowCount++;
-        }
-        return (double) belowCount / n * 100.0;
-    }
-
-    /**
-     * 计算年化波动率（日收益率标准差 × √252）
-     */
-    private double calcAnnualVolatility(List<StockDetail.CandleData> klines) {
-        if (klines.size() < 20) return 0;
-        int n = klines.size();
-        double sum = 0, sumSq = 0;
-        int count = 0;
-        for (int i = 1; i < n; i++) {
-            double prev = klines.get(i - 1).getClose();
-            if (prev <= 0) continue;
-            double ret = (klines.get(i).getClose() - prev) / prev;
-            sum += ret;
-            sumSq += ret * ret;
-            count++;
-        }
-        if (count < 5) return 0;
-        double mean = sum / count;
-        double variance = sumSq / count - mean * mean;
-        double dailyStd = Math.sqrt(Math.max(variance, 0));
-        return dailyStd * Math.sqrt(252) * 100; // 转为百分比
-    }
-
-    /**
-     * 计算近1年涨跌幅
-     */
-    private double calcYearlyReturn(List<StockDetail.CandleData> klines) {
-        int n = klines.size();
-        if (n < 20) return 0;
-        double old = klines.get(0).getClose();
-        double now = klines.get(n - 1).getClose();
-        if (old <= 0) return 0;
-        return (now - old) / old * 100.0;
+    private static String formatAmount(double amount) {
+        if (amount >= 100_000_000) return String.format(Locale.US, "%.2f亿", amount / 100_000_000);
+        if (amount >= 10_000) return String.format(Locale.US, "%.2f万", amount / 10_000);
+        return String.format(Locale.US, "%.0f元", amount);
     }
 
     /**

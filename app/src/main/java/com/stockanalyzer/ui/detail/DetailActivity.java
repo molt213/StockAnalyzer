@@ -395,40 +395,27 @@ public class DetailActivity extends AppCompatActivity {
             boolean isEtf = sym.matches("^[51]\\d{5}$");
 
             if (isEtf) {
-                // ETF模式
+                // ETF模式：第一行 = 指数盈利（有PE）/ 振幅（无PE）
                 if (detail.getEarningsYield() > 0) {
-                    // 有PE（股票型ETF）：指数盈利 + PE分位数
                     if (peLabel != null) peLabel.setText("指数盈利");
                     peText.setText(String.format(Locale.US, "%.2f%%", detail.getEarningsYield()));
                     if (peContainer != null) peContainer.setVisibility(View.VISIBLE);
+                } else if (detail.getAmplitude() > 0) {
+                    if (peLabel != null) peLabel.setText("振幅");
+                    peText.setText(String.format(Locale.US, "%.2f%%", detail.getAmplitude()));
+                    if (peContainer != null) peContainer.setVisibility(View.VISIBLE);
+                } else {
+                    if (peContainer != null) peContainer.setVisibility(View.GONE);
+                }
 
-                    if (epsLabel != null) epsLabel.setText("PE分位数");
-                    double pct = detail.getPePercentile();
-                    String suffix = pct >= 70 ? " ⬆" : pct <= 30 ? " ⬇" : "";
-                    epsText.setText(String.format(Locale.US, "%.1f%%%s", pct, suffix));
-                    epsText.setTextColor(pct >= 70 ? getColor(R.color.stock_down)
-                            : pct <= 30 ? getColor(R.color.stock_up)
-                            : getColor(isDarkMode ? R.color.dark_text_primary : R.color.text_primary));
+                // ETF模式第二行：成交额（所有ETF通用，体现流动性）
+                if (detail.getTurnoverAmount() > 0) {
+                    if (epsLabel != null) epsLabel.setText("成交额");
+                    epsText.setText(formatTurnover(detail.getTurnoverAmount()));
+                    epsText.setTextColor(getColor(isDarkMode ? R.color.dark_text_primary : R.color.text_primary));
                     if (epsContainer != null) epsContainer.setVisibility(View.VISIBLE);
                 } else {
-                    // 无PE（商品ETF）：年化波动率 + 近1年涨幅
-                    if (detail.getAnnualVolatility() > 0) {
-                        if (peLabel != null) peLabel.setText("年化波动");
-                        peText.setText(String.format(Locale.US, "%.2f%%", detail.getAnnualVolatility()));
-                        if (peContainer != null) peContainer.setVisibility(View.VISIBLE);
-                    } else {
-                        if (peContainer != null) peContainer.setVisibility(View.GONE);
-                    }
-
-                    if (epsLabel != null) epsLabel.setText("近1年涨幅");
-                    double yr = detail.getYearlyReturn();
-                    if (yr != 0) {
-                        epsText.setText(String.format(Locale.US, "%+.2f%%", yr));
-                        epsText.setTextColor(yr >= 0 ? getColor(R.color.stock_up) : getColor(R.color.stock_down));
-                        if (epsContainer != null) epsContainer.setVisibility(View.VISIBLE);
-                    } else {
-                        if (epsContainer != null) epsContainer.setVisibility(View.GONE);
-                    }
+                    if (epsContainer != null) epsContainer.setVisibility(View.GONE);
                 }
             } else {
                 // 股票模式：显示市盈率 + 每股收益
@@ -730,6 +717,13 @@ public class DetailActivity extends AppCompatActivity {
         rsiChart.fitScreen();
         rsiChart.invalidate();
     }
+
+    private String formatTurnover(double amount) {
+        if (amount >= 100_000_000) return String.format(Locale.US, "%.2f亿", amount / 100_000_000);
+        if (amount >= 10_000) return String.format(Locale.US, "%.2f万", amount / 10_000);
+        return String.format(Locale.US, "%.0f元", amount);
+    }
+
     public static void start(Context context, String symbol, String stockName) {
         Intent intent = new Intent(context, DetailActivity.class);
         intent.putExtra(Constants.EXTRA_SYMBOL, symbol);
