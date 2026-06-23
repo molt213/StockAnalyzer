@@ -437,8 +437,9 @@
                                 android:layout_columnWeight="1"
                                 android:orientation="vertical"
                                 android:layout_marginBottom="12dp">
-                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                                    android:text="指数盈利" android:textSize="12sp"
+                                <TextView android:id="@+id/detail_pe_label"
+                                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                    android:text="市盈率" android:textSize="12sp"
                                     android:textColor="?android:textColorSecondary" />
                                 <TextView android:id="@+id/detail_pe"
                                     android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -467,8 +468,9 @@
                                 android:layout_height="wrap_content"
                                 android:layout_columnWeight="1"
                                 android:orientation="vertical">
-                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                                    android:text="PE分位数" android:textSize="12sp"
+                                <TextView android:id="@+id/detail_eps_label"
+                                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                    android:text="每股收益" android:textSize="12sp"
                                     android:textColor="?android:textColorSecondary" />
                                 <TextView android:id="@+id/detail_eps"
                                     android:layout_width="wrap_content" android:layout_height="wrap_content"

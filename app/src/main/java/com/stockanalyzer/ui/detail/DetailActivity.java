@@ -77,6 +77,7 @@ public class DetailActivity extends AppCompatActivity {
     private RecyclerView newsRecycler;
     private NewsAdapter newsAdapter;
     private View peContainer, epsContainer;
+    private TextView peLabel, epsLabel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,6 +128,8 @@ public class DetailActivity extends AppCompatActivity {
         week52Text = findViewById(R.id.detail_52w);
         peContainer = findViewById(R.id.detail_pe_container);
         epsContainer = findViewById(R.id.detail_eps_container);
+        peLabel = findViewById(R.id.detail_pe_label);
+        epsLabel = findViewById(R.id.detail_eps_label);
         descriptionText = findViewById(R.id.detail_description);
         priceChart = findViewById(R.id.price_chart);
         macdChart = findViewById(R.id.macd_chart);
@@ -387,32 +390,55 @@ public class DetailActivity extends AppCompatActivity {
                 circulatingMarketCapText.setText(detail.getCirculatingMarketCap());
             } else { circulatingMarketCapText.setText("N/A"); }
 
-            // 指数盈利 = 1/PE * 100%（ETF/商品不适用时隐藏整行）
-            if (detail.getEarningsYield() > 0) {
-                peText.setText(String.format(Locale.US, "%.2f%%", detail.getEarningsYield()));
-                if (peContainer != null) peContainer.setVisibility(View.VISIBLE);
+            // 判断是否为ETF/商品（代码5开头=上海ETF，1开头=深圳ETF/LOF）
+            String sym = detail.getSymbol() != null ? detail.getSymbol() : "";
+            boolean isEtf = sym.matches("^[51]\\d{5}$");
+
+            if (isEtf) {
+                // ETF模式：显示指数盈利 + 历史PE分位数
+                if (detail.getEarningsYield() > 0) {
+                    if (peLabel != null) peLabel.setText("指数盈利");
+                    peText.setText(String.format(Locale.US, "%.2f%%", detail.getEarningsYield()));
+                    if (peContainer != null) peContainer.setVisibility(View.VISIBLE);
+                } else {
+                    if (peContainer != null) peContainer.setVisibility(View.GONE);
+                }
+
+                if (detail.getPePercentile() > 0) {
+                    if (epsLabel != null) epsLabel.setText("PE分位数");
+                    double pct = detail.getPePercentile();
+                    String suffix = pct >= 70 ? " ⬆" : pct <= 30 ? " ⬇" : "";
+                    epsText.setText(String.format(Locale.US, "%.1f%%%s", pct, suffix));
+                    epsText.setTextColor(pct >= 70 ? getColor(R.color.stock_down)
+                            : pct <= 30 ? getColor(R.color.stock_up)
+                            : getColor(isDarkMode ? R.color.dark_text_primary : R.color.text_primary));
+                    if (epsContainer != null) epsContainer.setVisibility(View.VISIBLE);
+                } else {
+                    if (epsContainer != null) epsContainer.setVisibility(View.GONE);
+                }
             } else {
-                if (peContainer != null) peContainer.setVisibility(View.GONE);
+                // 股票模式：显示市盈率 + 每股收益
+                if (detail.getPeRatio() > 0) {
+                    if (peLabel != null) peLabel.setText("市盈率");
+                    peText.setText(String.format(Locale.US, "%.2f", detail.getPeRatio()));
+                    if (peContainer != null) peContainer.setVisibility(View.VISIBLE);
+                } else {
+                    if (peContainer != null) peContainer.setVisibility(View.GONE);
+                }
+
+                if (detail.getEps() > 0) {
+                    if (epsLabel != null) epsLabel.setText("每股收益");
+                    epsText.setText(String.format(Locale.US, "%.2f", detail.getEps()));
+                    if (epsContainer != null) epsContainer.setVisibility(View.VISIBLE);
+                } else {
+                    if (epsContainer != null) epsContainer.setVisibility(View.GONE);
+                }
             }
 
             // 换手率
             if (detail.getTurnoverRate() != null && !detail.getTurnoverRate().isEmpty()) {
                 turnoverRateText.setText(detail.getTurnoverRate());
             } else { turnoverRateText.setText("N/A"); }
-
-            // 历史PE分位数（ETF/商品不适用时隐藏整行）
-            if (detail.getPePercentile() > 0) {
-                double pct = detail.getPePercentile();
-                // 添加高低提示：>70 偏高，<30 偏低
-                String suffix = pct >= 70 ? " ⬆" : pct <= 30 ? " ⬇" : "";
-                epsText.setText(String.format(Locale.US, "%.1f%%%s", pct, suffix));
-                epsText.setTextColor(pct >= 70 ? getColor(R.color.stock_down)
-                        : pct <= 30 ? getColor(R.color.stock_up)
-                        : getColor(isDarkMode ? R.color.dark_text_primary : R.color.text_primary));
-                if (epsContainer != null) epsContainer.setVisibility(View.VISIBLE);
-            } else {
-                if (epsContainer != null) epsContainer.setVisibility(View.GONE);
-            }
 
             // 52周范围
             if (detail.getWeek52High() > 0 || detail.getWeek52Low() > 0) {
@@ -426,13 +452,16 @@ public class DetailActivity extends AppCompatActivity {
         // Finnhub 美股数据走这里；A 股数据直接从 StockDetail 获取（见 updateCompanyUI）
         // 只有当 metrics 有具体值时覆盖，避免覆盖 A 股来自 StockDetail 的数据
         if (metrics == null) return;
-        // 美股也显示指数盈利
         if (metrics.peRatio != null && metrics.peRatio > 0) {
-            peText.setText(String.format(Locale.US, "%.2f%%", 100.0 / metrics.peRatio));
+            peText.setText(String.format(Locale.US, "%.2f", metrics.peRatio));
+            if (peLabel != null) peLabel.setText("市盈率");
             if (peContainer != null) peContainer.setVisibility(View.VISIBLE);
         }
-        // PE分位数美股暂不支持（无历史数据源），隐藏
-        if (epsContainer != null) epsContainer.setVisibility(View.GONE);
+        if (metrics.epsTtm != null) {
+            epsText.setText(String.format(Locale.US, "%.2f", metrics.epsTtm));
+            if (epsLabel != null) epsLabel.setText("每股收益");
+            if (epsContainer != null) epsContainer.setVisibility(View.VISIBLE);
+        }
         if (metrics.week52Low != null && metrics.week52High != null)
             week52Text.setText(String.format(Locale.US, "%.2f - %.2f", metrics.week52Low, metrics.week52High));
     }

@@ -517,14 +517,14 @@ public class StockRepository {
     }
 
     /**
-     * 添加自选股（上限10只）
+     * 添加自选股（上限30只）
      * @return true=添加成功, false=已达上限
      */
     public boolean addToWatchlist(String symbol, String name) {
         String clean = normalizeSymbol(symbol);
         // 检查上限
         List<StockEntity> current = database.stockDao().getAllWatchlistStocks();
-        if (current.size() >= 10) return false;
+        if (current.size() >= 30) return false;
 
         StockEntity entity = new StockEntity(
                 clean,

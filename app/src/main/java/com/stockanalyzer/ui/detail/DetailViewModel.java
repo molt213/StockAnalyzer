@@ -160,7 +160,7 @@ public class DetailViewModel extends ViewModel {
                 isInWatchlist.setValue(true);
                 errorMessage.setValue("已添加到自选股");
             } else {
-                errorMessage.setValue("自选股已达上限(10只)，请先移除再添加");
+                errorMessage.setValue("自选股已达上限(30只)，请先移除再添加");
             }
         }
     }
