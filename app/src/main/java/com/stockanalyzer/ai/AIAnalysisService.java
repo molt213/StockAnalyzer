@@ -105,15 +105,31 @@ public class AIAnalysisService {
         stockRepository.getCompanyProfile(symbol, new StockRepository.RepositoryCallback<StockDetail>() {
             @Override
             public void onSuccess(StockDetail detail) {
-                companyInfo.append(String.format(Locale.US,
-                        "公司: %s\n行业: %s\n板块: %s\n国家: %s\n总市值: %s\n流通市值: %s\n"
-                        + "市盈率: %.2f\n每股收益(EPS): %.2f\n52周高: %.2f\n52周低: %.2f\n",
+                String sym = detail.getSymbol() != null ? detail.getSymbol() : "";
+                boolean isEtf = sym.matches("^[51]\\d{5}$");
+                StringBuilder ciSb = new StringBuilder();
+                ciSb.append(String.format(Locale.US,
+                        "公司: %s\n行业: %s\n板块: %s\n国家: %s\n总市值: %s\n流通市值: %s\n52周高: %.2f\n52周低: %.2f\n",
                         detail.getName(), detail.getIndustry(), detail.getSector(),
                         detail.getCountry(),
                         detail.getMarketCap() != null ? detail.getMarketCap() : "N/A",
                         detail.getCirculatingMarketCap() != null ? detail.getCirculatingMarketCap() : "N/A",
-                        detail.getPeRatio(), detail.getEps(),
                         detail.getWeek52High(), detail.getWeek52Low()));
+                if (isEtf) {
+                    if (detail.getEarningsYield() > 0) {
+                        ciSb.append(String.format(Locale.US, "指数盈利: %.2f%%\n", detail.getEarningsYield()));
+                    }
+                    if (detail.getAmplitude() > 0) {
+                        ciSb.append(String.format(Locale.US, "振幅: %.2f%%\n", detail.getAmplitude()));
+                    }
+                    if (detail.getTurnoverAmount() > 0) {
+                        ciSb.append(String.format(Locale.US, "成交额: %s\n", formatAmount(detail.getTurnoverAmount())));
+                    }
+                } else {
+                    ciSb.append(String.format(Locale.US, "市盈率: %.2f\n每股收益(EPS): %.2f\n",
+                            detail.getPeRatio(), detail.getEps()));
+                }
+                companyInfo.append(ciSb.toString());
                 checkCompletion.onSuccess(null);
             }
 
@@ -269,10 +285,25 @@ public class AIAnalysisService {
         stockRepository.getCompanyProfile(symbol, new StockRepository.RepositoryCallback<StockDetail>() {
             @Override
             public void onSuccess(StockDetail detail) {
-                companyInfo.append(String.format(Locale.US,
+                String symF = detail.getSymbol() != null ? detail.getSymbol() : "";
+                boolean isEtfF = symF.matches("^[51]\\d{5}$");
+                StringBuilder ciF = new StringBuilder();
+                ciF.append(String.format(Locale.US,
                         "公司: %s\n行业: %s\n板块: %s\n国家: %s\n市值: %s\n描述: %s\n",
                         detail.getName(), detail.getIndustry(), detail.getSector(),
                         detail.getCountry(), detail.getMarketCap(), detail.getDescription()));
+                if (isEtfF) {
+                    if (detail.getEarningsYield() > 0)
+                        ciF.append(String.format(Locale.US, "指数盈利: %.2f%%\n", detail.getEarningsYield()));
+                    if (detail.getAmplitude() > 0)
+                        ciF.append(String.format(Locale.US, "振幅: %.2f%%\n", detail.getAmplitude()));
+                    if (detail.getTurnoverAmount() > 0)
+                        ciF.append(String.format(Locale.US, "成交额: %s\n", formatAmount(detail.getTurnoverAmount())));
+                } else {
+                    ciF.append(String.format(Locale.US, "市盈率: %.2f\n每股收益: %.2f\n",
+                            detail.getPeRatio(), detail.getEps()));
+                }
+                companyInfo.append(ciF.toString());
             }
 
             @Override
@@ -334,5 +365,12 @@ public class AIAnalysisService {
                         "无法获取实时数据", callback);
             }
         });
+    }
+
+    /** 格式化成交额（元 → 万/亿） */
+    private static String formatAmount(double amount) {
+        if (amount >= 100_000_000) return String.format(Locale.US, "%.2f亿", amount / 100_000_000);
+        if (amount >= 10_000) return String.format(Locale.US, "%.2f万", amount / 10_000);
+        return String.format(Locale.US, "%.0f元", amount);
     }
 }
