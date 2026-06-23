@@ -99,15 +99,6 @@
 
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- A 股提示 -->
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="A 股数据来自东方财富爬虫，无需 API Key"
-                        android:textSize="13sp"
-                        android:textColor="?android:textColorSecondary"
-                        android:padding="4dp" />
-
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
@@ -281,7 +272,19 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textSize="13sp"
-                        android:textColor="?android:textColorSecondary" />
+                        android:textColor="?android:textColorSecondary"
+                        android:layout_marginBottom="8dp" />
+
+                    <Button
+                        android:id="@+id/btn_github"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:text="GitHub 仓库"
+                        android:textSize="13sp"
+                        android:drawablePadding="6dp"
+                        android:drawableStart="@drawable/ic_github"
+                        android:layout_marginTop="2dp" />
 
                 </LinearLayout>
 

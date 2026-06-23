@@ -2,6 +2,8 @@ package com.stockanalyzer.ui.settings;
 
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -143,6 +145,16 @@ public class SettingsFragment extends Fragment {
                     .setNegativeButton("取消", null)
                     .show();
         });
+
+        // GitHub 仓库链接
+        Button btnGithub = requireView().findViewById(R.id.btn_github);
+        if (btnGithub != null) {
+            btnGithub.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://github.com/molt213/StockAnalyzer"));
+                requireContext().startActivity(intent);
+            });
+        }
 
         // 清除搜索历史
         Button btnClearSearch = requireView().findViewById(R.id.btn_clear_search);
