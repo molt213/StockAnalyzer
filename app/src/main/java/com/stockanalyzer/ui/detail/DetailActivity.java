@@ -395,16 +395,13 @@ public class DetailActivity extends AppCompatActivity {
             boolean isEtf = sym.matches("^[51]\\d{5}$");
 
             if (isEtf) {
-                // ETF模式：显示指数盈利 + 历史PE分位数
+                // ETF模式
                 if (detail.getEarningsYield() > 0) {
+                    // 有PE（股票型ETF）：指数盈利 + PE分位数
                     if (peLabel != null) peLabel.setText("指数盈利");
                     peText.setText(String.format(Locale.US, "%.2f%%", detail.getEarningsYield()));
                     if (peContainer != null) peContainer.setVisibility(View.VISIBLE);
-                } else {
-                    if (peContainer != null) peContainer.setVisibility(View.GONE);
-                }
 
-                if (detail.getPePercentile() > 0) {
                     if (epsLabel != null) epsLabel.setText("PE分位数");
                     double pct = detail.getPePercentile();
                     String suffix = pct >= 70 ? " ⬆" : pct <= 30 ? " ⬇" : "";
@@ -414,7 +411,24 @@ public class DetailActivity extends AppCompatActivity {
                             : getColor(isDarkMode ? R.color.dark_text_primary : R.color.text_primary));
                     if (epsContainer != null) epsContainer.setVisibility(View.VISIBLE);
                 } else {
-                    if (epsContainer != null) epsContainer.setVisibility(View.GONE);
+                    // 无PE（商品ETF）：年化波动率 + 近1年涨幅
+                    if (detail.getAnnualVolatility() > 0) {
+                        if (peLabel != null) peLabel.setText("年化波动");
+                        peText.setText(String.format(Locale.US, "%.2f%%", detail.getAnnualVolatility()));
+                        if (peContainer != null) peContainer.setVisibility(View.VISIBLE);
+                    } else {
+                        if (peContainer != null) peContainer.setVisibility(View.GONE);
+                    }
+
+                    if (epsLabel != null) epsLabel.setText("近1年涨幅");
+                    double yr = detail.getYearlyReturn();
+                    if (yr != 0) {
+                        epsText.setText(String.format(Locale.US, "%+.2f%%", yr));
+                        epsText.setTextColor(yr >= 0 ? getColor(R.color.stock_up) : getColor(R.color.stock_down));
+                        if (epsContainer != null) epsContainer.setVisibility(View.VISIBLE);
+                    } else {
+                        if (epsContainer != null) epsContainer.setVisibility(View.GONE);
+                    }
                 }
             } else {
                 // 股票模式：显示市盈率 + 每股收益

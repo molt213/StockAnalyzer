@@ -20,6 +20,8 @@ public class StockDetail {
     private double eps;
     private double earningsYield;      // 指数盈利 = 1/PE * 100%
     private double pePercentile;       // 历史PE分位数（当前PE在历史中的位置 %）
+    private double annualVolatility;   // 年化波动率（用于无PE的ETF）
+    private double yearlyReturn;       // 近1年涨幅（用于无PE的ETF）
     private double beta;
     private double week52High;
     private double week52Low;
@@ -70,6 +72,12 @@ public class StockDetail {
 
     public double getPePercentile() { return pePercentile; }
     public void setPePercentile(double pePercentile) { this.pePercentile = pePercentile; }
+
+    public double getAnnualVolatility() { return annualVolatility; }
+    public void setAnnualVolatility(double v) { this.annualVolatility = v; }
+
+    public double getYearlyReturn() { return yearlyReturn; }
+    public void setYearlyReturn(double v) { this.yearlyReturn = v; }
 
     public double getBeta() { return beta; }
     public void setBeta(double beta) { this.beta = beta; }
