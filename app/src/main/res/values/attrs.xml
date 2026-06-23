@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 工具栏背景色：亮色下用蓝色，暗色下用深灰 -->
+    <attr name="toolbarBackground" format="color" />
+</resources>

@@ -18,7 +18,7 @@
     <!-- 搜索 -->
     <string name="search_hint">输入股票代码或名称搜索</string>
     <string name="search_history">搜索历史</string>
-    <string name="search_no_results">没有找到匹配的股票</string>
+    <string name="search_no_results">没有找到匹配的结果，试试输入A股/ETF/商品代码或名称</string>
     <string name="searching">搜索中…</string>
 
     <!-- 股票详情 -->

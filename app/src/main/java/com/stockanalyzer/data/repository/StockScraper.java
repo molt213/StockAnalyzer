@@ -70,20 +70,33 @@ public class StockScraper {
     // ========== 工具 ==========
 
     /**
-     * 转换代码为新浪格式：600519 → sh600519，000858 → sz000858
+     * 判断是否为有效的中国证券市场代码（A股 + ETF + 北交所）
+     * 规则：
+     *   - 6开头 → 上海A股/科创板 (sh)
+     *   - 5开头 → 上海ETF (sh)
+     *   - 0/3开头 → 深圳A股/创业板 (sz)
+     *   - 1开头 → 深圳ETF/LOF (sz)，如 159xxx
+     *   - 8/4开头 → 北交所 (bj)
+     */
+    public static boolean isValidMarketCode(String symbol) {
+        String s = symbol.trim().toUpperCase();
+        if (s.startsWith("SH") || s.startsWith("SZ") || s.startsWith("BJ")) return true;
+        return s.matches("^[0134568]\\d{5}$");
+    }
+
+    /**
+     * 转换代码为新浪格式：600519 → sh600519，000858 → sz000858，518880 → sh518880
      */
     public static String toSinaSymbol(String code) {
         String c = code.trim().toUpperCase()
                 .replace("SH", "").replace("SZ", "").replace("BJ", "");
-        if (c.startsWith("6")) return "sh" + c;
-        if (c.startsWith("0") || c.startsWith("3")) return "sz" + c;
-        return "sh" + c;
+        if (c.startsWith("6") || c.startsWith("5")) return "sh" + c;  // 上海A股 + 上海ETF
+        if (c.startsWith("8") || c.startsWith("4")) return "bj" + c;  // 北交所
+        return "sz" + c;  // 深圳A股 + 深圳ETF(159xxx)
     }
 
     public static boolean isAShareCode(String symbol) {
-        String s = symbol.trim().toUpperCase();
-        if (s.startsWith("SH") || s.startsWith("SZ") || s.startsWith("BJ")) return true;
-        return s.matches("^[6003]\\d{5}$");
+        return isValidMarketCode(symbol);
     }
 
     // ========== 实时行情（新浪） ==========
@@ -309,22 +322,24 @@ public class StockScraper {
     // ========== 搜索（本地代码匹配） ==========
 
     /**
-     * 搜索 A 股（本地匹配）
+     * 搜索股票/ETF（本地匹配）
+     * 支持A股、ETF、大宗商品代码和名称模糊搜索
      */
     public static List<Stock> search(String input) {
         List<Stock> results = new ArrayList<>();
         String clean = input.trim().toUpperCase()
                 .replace("SH", "").replace("SZ", "").replace("BJ", "");
 
-        // 精确代码匹配
-        if (clean.matches("^[6003]\\d{5}$")) {
+        // 精确代码匹配（A股 + ETF + 北交所）
+        if (isValidMarketCode(clean)) {
             results.add(new Stock(clean, getStockName(clean)));
             return results;
         }
 
-        // 名称模糊匹配
+        // 名称模糊匹配（支持中文和英文名称搜索）
         for (String[] stock : POPULAR_STOCKS) {
-            if (stock[0].contains(clean) || stock[1].contains(clean)) {
+            if (stock[0].contains(clean) || stock[1].contains(clean)
+                    || stock[1].toUpperCase().contains(clean)) {
                 results.add(new Stock(stock[0], stock[1]));
             }
         }
@@ -371,7 +386,35 @@ public class StockScraper {
         {"600016", "民生银行"}, {"002142", "宁波银行"}, {"601688", "华泰证券"},
         {"600000", "浦发银行"}, {"600837", "海通证券"}, {"300122", "智飞生物"},
         {"688012", "中微公司"}, {"002371", "北方华创"}, {"603259", "药明康德"},
-        {"300896", "爱美客"}, {"688981", "中芯国际"}, {"601012", "隆基绿能"},
-        {"600809", "山西汾酒"}, {"002466", "天齐锂业"}, {"300274", "阳光电源"},
+        {"300896", "爱美客"}, {"601012", "隆基绿能"}, {"002466", "天齐锂业"},
+        // ===== 热门ETF =====
+        // 宽基指数ETF
+        {"510050", "上证50ETF"},       {"510300", "沪深300ETF"},
+        {"510500", "中证500ETF"},      {"510880", "红利ETF"},
+        {"159919", "沪深300ETF(SZ)"},  {"159949", "创业板50ETF"},
+        {"588000", "科创50ETF"},       {"512100", "中证1000ETF"},
+        {"159845", "中证1000ETF(SZ)"},
+        // 行业ETF
+        {"512880", "证券ETF"},         {"510230", "金融ETF"},
+        {"159920", "恒生ETF"},         {"513050", "中概互联ETF"},
+        {"513100", "纳指ETF"},         {"513500", "标普500ETF"},
+        {"159941", "纳指ETF(SZ)"},
+        // ===== 大宗商品/商品ETF =====
+        {"518880", "黄金ETF"},         // 华安黄金ETF - 国内最大黄金ETF
+        {"159934", "黄金ETF(SZ)"},     // 易方达黄金ETF
+        {"518800", "黄金基金"},        // 国泰黄金ETF
+        {"159937", "博时黄金"},        // 博时黄金ETF
+        {"159981", "能源化工ETF"},     // 能源化工期货ETF
+        {"159985", "豆粕ETF"},         // 豆粕期货ETF
+        {"159930", "能源ETF"},         // 能源ETF
+        {"159945", "能源ETF(SZ)"},
+        // 油气/原油相关
+        {"162411", "华宝油气"},        // 华宝标普油气LOF
+        {"501018", "原油基金"},        // 南方原油
+        {"160416", "石油基金"},        // 石油LOF
+        // 抗通胀/商品综合
+        {"159976", "商品ETF"},         // 商品ETF
+        {"159980", "有色ETF"},         // 有色金属ETF
+        {"512400", "有色金属ETF"},
     };
 }

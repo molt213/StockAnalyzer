@@ -123,12 +123,20 @@ public class EastMoneyScraper {
 
     /**
      * 获取东方财富 secid 格式
-     * 上海: 1.600519, 深圳: 0.000001
+     * 上海: 1.600519, 深圳: 0.000001, 北交所: 2.832317
+     * ETF: 上海ETF(5开头) → 1.518880, 深圳ETF(159xxx) → 0.159934
      */
     public static String toSecId(String symbol) {
         String c = symbol.trim().toUpperCase()
                 .replace("SH", "").replace("SZ", "").replace("BJ", "");
-        int market = c.startsWith("6") ? 1 : 0;
+        int market;
+        if (c.startsWith("6") || c.startsWith("5")) {
+            market = 1;  // 上海A股 + 上海ETF
+        } else if (c.startsWith("8") || c.startsWith("4")) {
+            market = 2;  // 北交所
+        } else {
+            market = 0;  // 深圳A股(0/3开头) + 深圳ETF(159xxx等1开头)
+        }
         return market + "." + c;
     }
 
@@ -141,21 +149,24 @@ public class EastMoneyScraper {
     }
 
     /**
-     * 判断是否为 A 股代码
+     * 判断是否为 A 股/ETF 代码（含上海深圳北交所）
      */
     public static boolean isAShareCode(String symbol) {
         String s = symbol.trim().toUpperCase();
         if (s.startsWith("SH") || s.startsWith("SZ") || s.startsWith("BJ")) return true;
-        return s.matches("^[6003]\\d{5}$");
+        return s.matches("^[0134568]\\d{5}$");
     }
 
     /**
      * 获取东方财富公司信息用的代码格式
-     * 上海: SH600519, 深圳: SZ000001
+     * 上海: SH600519, 深圳: SZ000001, 北交所: BJ832317
+     * ETF: 上海ETF → SH518880, 深圳ETF → SZ159934
      */
     public static String toCompanyCode(String symbol) {
         String c = toCodeOnly(symbol);
-        return c.startsWith("6") ? "SH" + c : "SZ" + c;
+        if (c.startsWith("6") || c.startsWith("5")) return "SH" + c;  // 上海A股 + 上海ETF
+        if (c.startsWith("8") || c.startsWith("4")) return "BJ" + c;  // 北交所
+        return "SZ" + c;  // 深圳 + 深圳ETF(159xxx)
     }
 
     // ========== 实时行情 ==========
@@ -501,9 +512,10 @@ public class EastMoneyScraper {
     // ========== 搜索 ==========
 
     /**
-     * 搜索股票
-     * 使用东方财富 suggest 搜索接口
+     * 搜索股票/ETF/商品
+     * 使用东方财富 suggest 搜索接口，支持代码和名称搜索
      * 返回: {"result":[{"Code":"600519","Name":"贵州茅台","Type":1},...]}
+     * 支持: A股代码(6/0/3开头)、ETF代码(5/1开头)、北交所(8/4开头)、名称搜索(中文/英文)
      */
     public void search(String query, RepositoryCallback<List<Stock>> callback) {
         executor.execute(() -> {
@@ -511,79 +523,79 @@ public class EastMoneyScraper {
                 String clean = toCodeOnly(query);
                 List<Stock> stocks = new ArrayList<>();
 
-                // 仅支持代码搜索
-                if (clean.matches("^[6003]\\d{5}$")) {
-                    // 先从本地查询名称
-                    stocks = StockRepository.searchAllStocks(query);
+                // 先尝试本地查询（精确代码匹配 + 名称模糊匹配）
+                stocks = StockRepository.searchAllStocks(query);
 
-                    // 本地没有则尝试 API
-                    if (stocks.isEmpty()) {
-                        String encoded = java.net.URLEncoder.encode(query, "UTF-8");
-                        String url = "https://searchadapter.eastmoney.com/api/suggest/get?input=" + encoded + "&count=10&type=1";
-                        try {
-                            Request request = new Request.Builder()
-                                    .url(url)
-                                    .addHeader("Referer", "https://quote.eastmoney.com/")
-                                    .build();
-                            Response response = client.newCall(request).execute();
-                            String body = response.body() != null ? response.body().string() : "";
-                            response.close();
-                            if (!body.isEmpty()) {
-                                if (body.startsWith("jQuery(")) {
-                                    int s = body.indexOf("("), e = body.lastIndexOf(")");
-                                    if (s >= 0 && e > s) body = body.substring(s + 1, e);
-                                }
-                                JSONObject json = new JSONObject(body);
-                                JSONArray result = json.optJSONArray("result");
-                                if (result != null) {
-                                    for (int i = 0; i < result.length(); i++) {
-                                        JSONObject item = result.getJSONObject(i);
-                                        String code = item.optString("Code", "");
-                                        String name = item.optString("Name", "");
-                                        if (!code.isEmpty() && !name.isEmpty()) {
-                                            String sym = code.startsWith("6") ? "SH" + code : "SZ" + code;
-                                            stocks.add(new Stock(sym, name));
-                                            StockRepository.getInstance().saveSearchedStock(sym, name);
-                                        }
+                // 本地没有则尝试远程 suggest API（支持代码和名称搜索）
+                if (stocks.isEmpty()) {
+                    String encoded = java.net.URLEncoder.encode(query, "UTF-8");
+                    String url = "https://searchadapter.eastmoney.com/api/suggest/get?input=" + encoded + "&count=10&type=1";
+                    try {
+                        Request request = new Request.Builder()
+                                .url(url)
+                                .addHeader("Referer", "https://quote.eastmoney.com/")
+                                .build();
+                        Response response = client.newCall(request).execute();
+                        String body = response.body() != null ? response.body().string() : "";
+                        response.close();
+                        if (!body.isEmpty()) {
+                            if (body.startsWith("jQuery(")) {
+                                int s = body.indexOf("("), e = body.lastIndexOf(")");
+                                if (s >= 0 && e > s) body = body.substring(s + 1, e);
+                            }
+                            JSONObject json = new JSONObject(body);
+                            JSONArray result = json.optJSONArray("result");
+                            if (result != null) {
+                                for (int i = 0; i < result.length(); i++) {
+                                    JSONObject item = result.getJSONObject(i);
+                                    String code = item.optString("Code", "");
+                                    String name = item.optString("Name", "");
+                                    if (!code.isEmpty() && !name.isEmpty()) {
+                                        String sym = code.startsWith("6") || code.startsWith("5")
+                                                ? "SH" + code : "SZ" + code;
+                                        stocks.add(new Stock(sym, name));
+                                        StockRepository.getInstance().saveSearchedStock(sym, name);
                                     }
                                 }
                             }
-                        } catch (Exception e) {
-                            Log.w(TAG, "搜索API失败", e);
                         }
+                    } catch (Exception e) {
+                        Log.w(TAG, "搜索API失败", e);
                     }
+                }
 
-                    // 实在找不到名称，从行情API获取股票名称
-                    if (stocks.isEmpty()) {
-                        try {
-                            String secId = toSecId(clean);
-                            String qUrl = EASTMONEY_QUOTE_URL + "?secid=" + secId + "&fields=f57,f58&_=" + System.currentTimeMillis();
-                            Request qReq = new Request.Builder().url(qUrl)
-                                    .addHeader("Referer", "https://quote.eastmoney.com/")
-                                    .build();
-                            Response qResp = client.newCall(qReq).execute();
-                            String qBody = qResp.body() != null ? qResp.body().string() : "";
-                            qResp.close();
-                            if (!qBody.isEmpty()) {
-                                JSONObject qJson = new JSONObject(qBody);
-                                JSONObject qData = qJson.optJSONObject("data");
-                                if (qData != null) {
-                                    String realName = qData.optString("f58", "");
-                                    if (!realName.isEmpty()) {
-                                        String sym = clean.startsWith("6") ? "SH" + clean : "SZ" + clean;
-                                        stocks.add(new Stock(sym, realName));
-                                        StockRepository.getInstance().saveSearchedStock(sym, realName);
-                                    }
+                // 实在找不到名称，从行情API获取股票名称（仅当输入是合法代码时）
+                if (stocks.isEmpty() && StockScraper.isValidMarketCode(clean)) {
+                    try {
+                        String secId = toSecId(clean);
+                        String qUrl = EASTMONEY_QUOTE_URL + "?secid=" + secId + "&fields=f57,f58&_=" + System.currentTimeMillis();
+                        Request qReq = new Request.Builder().url(qUrl)
+                                .addHeader("Referer", "https://quote.eastmoney.com/")
+                                .build();
+                        Response qResp = client.newCall(qReq).execute();
+                        String qBody = qResp.body() != null ? qResp.body().string() : "";
+                        qResp.close();
+                        if (!qBody.isEmpty()) {
+                            JSONObject qJson = new JSONObject(qBody);
+                            JSONObject qData = qJson.optJSONObject("data");
+                            if (qData != null) {
+                                String realName = qData.optString("f58", "");
+                                if (!realName.isEmpty()) {
+                                    String sym = codePrefix(clean) + clean;
+                                    stocks.add(new Stock(sym, realName));
+                                    StockRepository.getInstance().saveSearchedStock(sym, realName);
                                 }
                             }
-                        } catch (Exception e) {
-                            Log.w(TAG, "搜索获取名称失败", e);
                         }
+                    } catch (Exception e) {
+                        Log.w(TAG, "搜索获取名称失败", e);
                     }
-                    if (stocks.isEmpty()) {
-                        String sym = clean.startsWith("6") ? "SH" + clean : "SZ" + clean;
-                        stocks.add(new Stock(sym, clean));
-                    }
+                }
+
+                // 最后保底：代码搜索时返回带占位名的结果
+                if (stocks.isEmpty() && StockScraper.isValidMarketCode(clean)) {
+                    String sym = codePrefix(clean) + clean;
+                    stocks.add(new Stock(sym, clean));
                 }
 
                 final List<Stock> finalResult = stocks;
@@ -594,6 +606,13 @@ public class EastMoneyScraper {
                 mainHandler.post(() -> callback.onSuccess(new ArrayList<>()));
             }
         });
+    }
+
+    /** 根据代码前缀返回市场标识 */
+    private static String codePrefix(String code) {
+        if (code.startsWith("6") || code.startsWith("5")) return "SH";
+        if (code.startsWith("8") || code.startsWith("4")) return "BJ";
+        return "SZ";
     }
 
 

@@ -124,14 +124,16 @@ public class StockRepository {
     }
 
     /**
-     * 搜索股票（仅支持A股代码搜索）
+     * 搜索股票/ETF/商品
+     * 支持A股代码、ETF代码(518880、159934等)、名称搜索(黄金、石油、茅台)
+     * 自动路由到当前数据源（东方财富/腾讯/新浪）
      */
     public void searchStocks(String query, final RepositoryCallback<List<Stock>> callback) {
         searchAShares(query, callback);
     }
 
     /**
-     * 搜索 A 股
+     * 搜索 A 股/ETF/商品
      */
     public void searchAShares(String query, final RepositoryCallback<List<Stock>> callback) {
         routeSearch(query, callback);
@@ -403,20 +405,23 @@ public class StockRepository {
 
     // ==================== 搜索缓存 ====================
 
-    /** 保存搜索到的股票到本地缓存（后续可按名称搜索） */
+    /** 保存搜索到的股票/ETF/商品到本地缓存（去前缀，后续可按代码或名称搜索） */
     public void saveSearchedStock(String code, String name) {
         executor.execute(() -> {
             try {
+                // 统一存储：去掉 SH/SZ/BJ 前缀，只存纯代码
+                String cleanCode = code.trim().toUpperCase()
+                        .replace("SH", "").replace("SZ", "").replace("BJ", "");
                 String json = StockAnalyzerApp.getInstance().getPreferences()
                         .getString("searched_stocks", "[]");
                 JSONArray arr = new JSONArray(json);
                 // 去重
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject item = arr.getJSONObject(i);
-                    if (item.optString("code").equals(code)) return; // 已存在
+                    if (item.optString("code").equals(cleanCode)) return; // 已存在
                 }
                 JSONObject newItem = new JSONObject();
-                newItem.put("code", code);
+                newItem.put("code", cleanCode);
                 newItem.put("name", name);
                 arr.put(newItem);
                 // 限制最多200条
@@ -429,7 +434,10 @@ public class StockRepository {
         });
     }
 
-    /** 搜索所有股票（含本地缓存 + 热门股） */
+    /**
+     * 搜索所有品种（含本地缓存 + 热门股/ETF/商品）
+     * 支持：精确代码匹配、名称模糊匹配（中文/英文）
+     */
     public static List<Stock> searchAllStocks(String input) {
         List<Stock> results = new ArrayList<>();
         String clean = input.trim().toUpperCase()

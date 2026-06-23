@@ -79,7 +79,9 @@ public class TencentScraper {
     private String toTencentSymbol(String symbol) {
         String c = symbol.trim().toUpperCase()
                 .replace("SH", "").replace("SZ", "").replace("BJ", "");
-        return c.startsWith("6") ? "sh" + c : "sz" + c;
+        if (c.startsWith("6") || c.startsWith("5")) return "sh" + c;  // 上海A股 + 上海ETF(518880等)
+        if (c.startsWith("8") || c.startsWith("4")) return "bj" + c;  // 北交所
+        return "sz" + c;  // 深圳A股 + 深圳ETF(159xxx)
     }
 
     /** 提取纯数字代码 */
@@ -91,14 +93,16 @@ public class TencentScraper {
     /** 转为新浪格式（K线用） */
     private String toSinaSymbol(String symbol) {
         String c = toCodeOnly(symbol);
-        return c.startsWith("6") ? "sh" + c : "sz" + c;
+        if (c.startsWith("6") || c.startsWith("5")) return "sh" + c;  // 上海A股 + 上海ETF
+        if (c.startsWith("8") || c.startsWith("4")) return "bj" + c;  // 北交所
+        return "sz" + c;  // 深圳A股 + 深圳ETF(159xxx)
     }
 
-    /** 判断是否为 A 股 */
+    /** 判断是否为 A 股/ETF */
     public static boolean isAShareCode(String symbol) {
         String s = symbol.trim().toUpperCase();
         if (s.startsWith("SH") || s.startsWith("SZ") || s.startsWith("BJ")) return true;
-        return s.matches("^[6003]\\d{5}$");
+        return s.matches("^[0134568]\\d{5}$");
     }
 
     // ========== 实时行情 ==========
@@ -398,12 +402,14 @@ public class TencentScraper {
     public void search(String query, RepositoryCallback<List<Stock>> callback) {
         executor.execute(() -> {
             List<Stock> stocks = StockRepository.searchAllStocks(query);
-            // 本地没找到，尝试腾讯 API 获取名称
+            // 本地没找到，尝试腾讯行情API获取名称
             if (stocks.isEmpty()) {
                 String clean = toCodeOnly(query);
-                if (clean.matches("^[6003]\\d{5}$")) {
+                if (StockScraper.isValidMarketCode(clean)) {
                     String name = fetchNameFromTencent(clean);
-                    String sym = clean.startsWith("6") ? "SH" + clean : "SZ" + clean;
+                    String sym = (clean.startsWith("6") || clean.startsWith("5")) ? "SH" + clean
+                            : clean.startsWith("8") || clean.startsWith("4") ? "BJ" + clean
+                            : "SZ" + clean;
                     if (name == null || name.isEmpty()) name = clean;
                     stocks.add(new Stock(sym, name));
                     if (!name.equals(clean)) {
@@ -415,10 +421,12 @@ public class TencentScraper {
         });
     }
 
-    /** 从腾讯行情获取股票名称 */
+    /** 从腾讯行情获取股票/ETF名称 */
     private String fetchNameFromTencent(String code) {
         try {
-            String ts = code.startsWith("6") ? "sh" + code : "sz" + code;
+            String ts = (code.startsWith("6") || code.startsWith("5")) ? "sh" + code
+                    : code.startsWith("8") || code.startsWith("4") ? "bj" + code
+                    : "sz" + code;
             String url = TENCENT_QUOTE_URL + ts;
             Request request = new Request.Builder().url(url)
                     .addHeader("Referer", "https://gu.qq.com/")

@@ -133,7 +133,7 @@ public class DashboardFragment extends Fragment {
             return;
         }
 
-        // 获取自选股列表（仅显示A股）
+        // 获取自选股列表（A股 + ETF + 北交所）
         List<StockEntity> entities = repository.getWatchlist();
         List<StockEntity> aShareEntities = new ArrayList<>();
         for (StockEntity e : entities) {

@@ -98,13 +98,12 @@ public class SearchFragment extends Fragment {
 
         searchInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                String query = searchInput.getText().toString().trim().toUpperCase()
-                        .replace("SH", "").replace("SZ", "").replace("BJ", "");
-                if (query.matches("^[6003]\\d{5}$")) {
-                    performSearch(query);
-                } else if (!query.isEmpty()) {
-                    Toast.makeText(requireContext(), "请输入A股代码（如 600519）", Toast.LENGTH_SHORT).show();
+                String query = searchInput.getText().toString().trim();
+                if (query.isEmpty()) {
+                    return true;
                 }
+                // 支持：A股代码(600519)、ETF代码(518880)、商品代码(159934)、名称搜索(黄金、石油、茅台)
+                performSearch(query);
                 return true;
             }
             return false;

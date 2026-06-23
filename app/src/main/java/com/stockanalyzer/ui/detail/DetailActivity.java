@@ -63,6 +63,7 @@ import java.util.Locale;
 public class DetailActivity extends AppCompatActivity {
 
     private DetailViewModel viewModel;
+    private boolean isDarkMode;
 
     private TextView symbolText, nameText, priceText, changeText;
     private TextView openText, highText, lowText, prevCloseText;
@@ -80,7 +81,8 @@ public class DetailActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         // 应用暗色主题
         SharedPreferences prefs = getSharedPreferences("stock_analyzer_prefs", MODE_PRIVATE);
-        if (prefs.getBoolean("dark_mode", false)) {
+        isDarkMode = prefs.getBoolean("dark_mode", false);
+        if (isDarkMode) {
             setTheme(R.style.Theme_StockAnalyzer_Dark);
         }
         super.onCreate(savedInstanceState);
@@ -217,41 +219,47 @@ public class DetailActivity extends AppCompatActivity {
         priceChart.setMaxVisibleValueCount(0);
         priceChart.setDrawBorders(false);
 
+        int textColor = isDarkMode ? Color.WHITE : Color.GRAY;
+        int gridColor = isDarkMode ? Color.argb(80, 255, 255, 255) : Color.LTGRAY;
+
         XAxis xAxis = priceChart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-        xAxis.setTextColor(Color.GRAY);
+        xAxis.setTextColor(textColor);
         xAxis.setDrawGridLines(false);
         xAxis.setLabelCount(5, false);
 
         YAxis leftAxis = priceChart.getAxisLeft();
-        leftAxis.setTextColor(Color.GRAY);
+        leftAxis.setTextColor(textColor);
         leftAxis.setDrawGridLines(true);
-        leftAxis.setGridColor(Color.LTGRAY);
+        leftAxis.setGridColor(gridColor);
 
         priceChart.getAxisRight().setEnabled(false);
         priceChart.getLegend().setEnabled(false);
     }
 
     private void setupIndicatorCharts() {
+        int textColor = isDarkMode ? Color.WHITE : Color.GRAY;
+        int gridColor = isDarkMode ? Color.argb(80, 255, 255, 255) : Color.LTGRAY;
+
         // MACD 图表
         macdChart.getDescription().setEnabled(false);
         macdChart.setTouchEnabled(false);
         macdChart.setDrawGridBackground(false);
         macdChart.setBackgroundColor(Color.TRANSPARENT);
         macdChart.setScaleEnabled(false);
-        macdChart.getLegend().setTextColor(Color.GRAY);
+        macdChart.getLegend().setTextColor(textColor);
 
         XAxis macdX = macdChart.getXAxis();
         macdX.setPosition(XAxis.XAxisPosition.TOP);
-        macdX.setTextColor(Color.GRAY);
+        macdX.setTextColor(textColor);
         macdX.setDrawGridLines(false);
         macdX.setLabelCount(3, false);
         macdX.setDrawLabels(false);
 
         YAxis macdLeft = macdChart.getAxisLeft();
-        macdLeft.setTextColor(Color.GRAY);
+        macdLeft.setTextColor(textColor);
         macdLeft.setDrawGridLines(true);
-        macdLeft.setGridColor(Color.LTGRAY);
+        macdLeft.setGridColor(gridColor);
         macdLeft.setLabelCount(3, false);
 
         macdChart.getAxisRight().setEnabled(false);
@@ -262,19 +270,19 @@ public class DetailActivity extends AppCompatActivity {
         rsiChart.setDrawGridBackground(false);
         rsiChart.setBackgroundColor(Color.TRANSPARENT);
         rsiChart.setScaleEnabled(false);
-        rsiChart.getLegend().setTextColor(Color.GRAY);
+        rsiChart.getLegend().setTextColor(textColor);
 
         XAxis rsiX = rsiChart.getXAxis();
         rsiX.setPosition(XAxis.XAxisPosition.TOP);
-        rsiX.setTextColor(Color.GRAY);
+        rsiX.setTextColor(textColor);
         rsiX.setDrawGridLines(false);
         rsiX.setLabelCount(3, false);
         rsiX.setDrawLabels(false);
 
         YAxis rsiLeft = rsiChart.getAxisLeft();
-        rsiLeft.setTextColor(Color.GRAY);
+        rsiLeft.setTextColor(textColor);
         rsiLeft.setDrawGridLines(true);
-        rsiLeft.setGridColor(Color.LTGRAY);
+        rsiLeft.setGridColor(gridColor);
         rsiLeft.setAxisMinimum(0);
         rsiLeft.setAxisMaximum(100);
         rsiLeft.setLabelCount(4, false);
@@ -440,8 +448,9 @@ public class DetailActivity extends AppCompatActivity {
         // 阳线(close>open)→红色, 阴线(close<open)→绿色（中国习惯）
         candleSet.setIncreasingColor(getColor(R.color.stock_up));     // 阳线: 红
         candleSet.setDecreasingColor(getColor(R.color.stock_down));   // 阴线: 绿
-        candleSet.setNeutralColor(Color.GRAY);
-        candleSet.setShadowColor(Color.GRAY);         // 影线灰色
+        int dimColor = isDarkMode ? Color.argb(180, 255, 255, 255) : Color.GRAY;
+        candleSet.setNeutralColor(dimColor);
+        candleSet.setShadowColor(dimColor);         // 影线
         candleSet.setShadowWidth(0.8f);
         candleSet.setBarSpace(0.3f);                  // 柱间距
         candleSet.setDrawValues(false);

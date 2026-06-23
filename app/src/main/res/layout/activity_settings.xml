@@ -10,7 +10,7 @@
         android:id="@+id/settings_toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
+        android:background="?attr/toolbarBackground"
         app:title="@string/settings_title"
         app:titleTextColor="@color/text_on_primary"
         app:navigationIcon="?attr/homeAsUpIndicator" />
