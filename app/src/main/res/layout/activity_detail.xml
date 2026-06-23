@@ -431,6 +431,7 @@
 
                             <!-- 市盈率 -->
                             <LinearLayout
+                                android:id="@+id/detail_pe_container"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_columnWeight="1"
@@ -461,6 +462,7 @@
 
                             <!-- 每股收益 -->
                             <LinearLayout
+                                android:id="@+id/detail_eps_container"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_columnWeight="1"

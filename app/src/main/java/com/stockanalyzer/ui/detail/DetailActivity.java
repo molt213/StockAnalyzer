@@ -76,6 +76,7 @@ public class DetailActivity extends AppCompatActivity {
     private SwipeRefreshLayout swipeRefresh;
     private RecyclerView newsRecycler;
     private NewsAdapter newsAdapter;
+    private View peContainer, epsContainer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,6 +125,8 @@ public class DetailActivity extends AppCompatActivity {
         turnoverRateText = findViewById(R.id.detail_turnover_rate);
         epsText = findViewById(R.id.detail_eps);
         week52Text = findViewById(R.id.detail_52w);
+        peContainer = findViewById(R.id.detail_pe_container);
+        epsContainer = findViewById(R.id.detail_eps_container);
         descriptionText = findViewById(R.id.detail_description);
         priceChart = findViewById(R.id.price_chart);
         macdChart = findViewById(R.id.macd_chart);
@@ -384,20 +387,26 @@ public class DetailActivity extends AppCompatActivity {
                 circulatingMarketCapText.setText(detail.getCirculatingMarketCap());
             } else { circulatingMarketCapText.setText("N/A"); }
 
-            // 市盈率
+            // 市盈率（ETF/商品不适用时隐藏整行）
             if (detail.getPeRatio() > 0) {
                 peText.setText(String.format(Locale.US, "%.2f", detail.getPeRatio()));
-            } else { peText.setText("N/A"); }
+                if (peContainer != null) peContainer.setVisibility(View.VISIBLE);
+            } else {
+                if (peContainer != null) peContainer.setVisibility(View.GONE);
+            }
 
             // 换手率
             if (detail.getTurnoverRate() != null && !detail.getTurnoverRate().isEmpty()) {
                 turnoverRateText.setText(detail.getTurnoverRate());
             } else { turnoverRateText.setText("N/A"); }
 
-            // 每股收益 EPS
+            // 每股收益 EPS（ETF/商品不适用时隐藏整行）
             if (detail.getEps() > 0) {
                 epsText.setText(String.format(Locale.US, "%.2f", detail.getEps()));
-            } else { epsText.setText("N/A"); }
+                if (epsContainer != null) epsContainer.setVisibility(View.VISIBLE);
+            } else {
+                if (epsContainer != null) epsContainer.setVisibility(View.GONE);
+            }
 
             // 52周范围
             if (detail.getWeek52High() > 0 || detail.getWeek52Low() > 0) {
